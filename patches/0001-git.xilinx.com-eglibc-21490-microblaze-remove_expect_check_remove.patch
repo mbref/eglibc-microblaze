@@ -1,0 +1,76 @@
+diff -purN --exclude=.gitattributes --exclude=.gitignore --exclude=.git --exclude='*.old' --exclude=patches --exclude=autom4te.cache --exclude=plgx_local eglibc-microblaze/configure git.xilinx.com_microblaze-gnu_src_eglibc/configure
+--- eglibc-microblaze/configure	2012-10-07 21:08:23.676545696 +0200
++++ git.xilinx.com_microblaze-gnu_src_eglibc/configure	2012-09-28 23:26:34.742838609 +0200
+@@ -7568,40 +7568,6 @@ _ACEOF
+ fi
+ fi
+ 
+-{ $as_echo "$as_me:$LINENO: checking for __builtin_expect" >&5
+-$as_echo_n "checking for __builtin_expect... " >&6; }
+-if test "${libc_cv_gcc_builtin_expect+set}" = set; then
+-  $as_echo_n "(cached) " >&6
+-else
+-  cat > conftest.c <<EOF
+-#line $LINENO "configure"
+-int foo (int a)
+-{
+-  a = __builtin_expect (a, 10);
+-  return a == 10 ? 0 : 1;
+-}
+-EOF
+-if { ac_try='${CC-cc} $CFLAGS $CPPFLAGS $LDFLAGS -nostdlib -nostartfiles
+-			    -o conftest conftest.c -lgcc >&5'
+-  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
+-  (eval $ac_try) 2>&5
+-  ac_status=$?
+-  $as_echo "$as_me:$LINENO: \$? = $ac_status" >&5
+-  (exit $ac_status); }; }; then
+-  libc_cv_gcc_builtin_expect=yes
+-else
+-  libc_cv_gcc_builtin_expect=no
+-fi
+-rm -f conftest*
+-fi
+-{ $as_echo "$as_me:$LINENO: result: $libc_cv_gcc_builtin_expect" >&5
+-$as_echo "$libc_cv_gcc_builtin_expect" >&6; }
+-if test "$libc_cv_gcc_builtin_expect" = no; then
+-  { { $as_echo "$as_me:$LINENO: error: support for __builtin_expect needed" >&5
+-$as_echo "$as_me: error: support for __builtin_expect needed" >&2;}
+-   { (exit 1); exit 1; }; }
+-fi
+-
+ { $as_echo "$as_me:$LINENO: checking for __builtin_memset" >&5
+ $as_echo_n "checking for __builtin_memset... " >&6; }
+ if test "${libc_cv_gcc_builtin_memset+set}" = set; then
+diff -purN --exclude=.gitattributes --exclude=.gitignore --exclude=.git --exclude='*.old' --exclude=patches --exclude=autom4te.cache --exclude=plgx_local eglibc-microblaze/configure.in git.xilinx.com_microblaze-gnu_src_eglibc/configure.in
+--- eglibc-microblaze/configure.in	2012-10-07 20:33:43.114077678 +0200
++++ git.xilinx.com_microblaze-gnu_src_eglibc/configure.in	2012-09-28 23:26:34.752840121 +0200
+@@ -2135,28 +2135,6 @@ if test "$libc_cv_c_asmcr0_bug" != 'no';
+ fi
+ fi
+ 
+-dnl Check whether compiler understands __builtin_expect.
+-AC_CACHE_CHECK(for __builtin_expect, libc_cv_gcc_builtin_expect,
+-[cat > conftest.c <<EOF
+-#line $LINENO "configure"
+-int foo (int a)
+-{
+-  a = __builtin_expect (a, 10);
+-  return a == 10 ? 0 : 1;
+-}
+-EOF
+-dnl No \ in command here because it ends up inside ''.
+-if AC_TRY_COMMAND([${CC-cc} $CFLAGS $CPPFLAGS $LDFLAGS -nostdlib -nostartfiles
+-			    -o conftest conftest.c -lgcc >&AS_MESSAGE_LOG_FD]); then
+-  libc_cv_gcc_builtin_expect=yes
+-else
+-  libc_cv_gcc_builtin_expect=no
+-fi
+-rm -f conftest*])
+-if test "$libc_cv_gcc_builtin_expect" = no; then
+-  AC_MSG_ERROR([support for __builtin_expect needed])
+-fi
+-
+ AC_CACHE_CHECK(for __builtin_memset, libc_cv_gcc_builtin_memset, [dnl
+ cat > conftest.c <<\EOF
+ void zero (void *x)
