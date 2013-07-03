@@ -754,15 +754,8 @@ deval (long double x, const long double *p, int n)
 }
 
 
-#ifdef __STDC__
 long double
 __ieee754_lgammal_r (long double x, int *signgamp)
-#else
-long double
-__ieee754_lgammal_r (x, signgamp)
-     long double x;
-     int *signgamp;
-#endif
 {
   long double p, q, w, z, nx;
   int i, nn;
@@ -1040,3 +1033,4 @@ __ieee754_lgammal_r (x, signgamp)
   q += neval (p, RASY, NRASY) / x;
   return (q);
 }
+strong_alias (__ieee754_lgammal_r, __lgammal_r_finite)

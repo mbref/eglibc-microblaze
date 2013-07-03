@@ -368,12 +368,12 @@ nis_list (const_nis_name name, unsigned int flags,
 	    else if ((flags & FOLLOW_PATH)
 		     && NIS_RES_STATUS (res) == NIS_PARTIAL)
 	      {
-		clnt_status = __follow_path (&tablepath, &tableptr, ibreq,
-					     &bptr);
-		if (clnt_status != NIS_SUCCESS)
+		enum nis_error err = __follow_path (&tablepath, &tableptr,
+						    ibreq, &bptr);
+		if (err != NIS_SUCCESS)
 		  {
-		    if (clnt_status == NIS_NOMEMORY)
-		      NIS_RES_STATUS (res) = clnt_status;
+		    if (err == NIS_NOMEMORY)
+		      NIS_RES_STATUS (res) = err;
 		    ++done;
 		  }
 		else
@@ -428,15 +428,15 @@ nis_list (const_nis_name name, unsigned int flags,
 		    NIS_RES_STATUS (allres) = NIS_RES_STATUS (res);
 		    xdr_free ((xdrproc_t) _xdr_nis_result, (char *) res);
 		  }
-		clnt_status = __follow_path (&tablepath, &tableptr, ibreq,
-					     &bptr);
-		if (clnt_status != NIS_SUCCESS)
+		enum nis_error err = __follow_path (&tablepath, &tableptr,
+						    ibreq, &bptr);
+		if (err != NIS_SUCCESS)
 		  {
 		    /* Prepare for the nis_freeresult call.  */
 		    memset (res, '\0', sizeof (*res));
 
-		    if (clnt_status == NIS_NOMEMORY)
-		      NIS_RES_STATUS (allres) = clnt_status;
+		    if (err == NIS_NOMEMORY)
+		      NIS_RES_STATUS (allres) = err;
 		    ++done;
 		  }
 	      }
@@ -453,12 +453,12 @@ nis_list (const_nis_name name, unsigned int flags,
 		  ++done;
 		else
 		  {
-		    clnt_status
+		    enum nis_error err
 		      = __follow_path (&tablepath, &tableptr, ibreq, &bptr);
-		    if (clnt_status != NIS_SUCCESS)
+		    if (err != NIS_SUCCESS)
 		      {
-			if (clnt_status == NIS_NOMEMORY)
-			  NIS_RES_STATUS (res) = clnt_status;
+			if (err == NIS_NOMEMORY)
+			  NIS_RES_STATUS (res) = err;
 			++done;
 		      }
 		  }

@@ -14,10 +14,6 @@
  * ====================================================
  */
 
-#if defined(LIBM_SCCS) && !defined(lint)
-static char rcsid[] = "$NetBSD: $";
-#endif
-
 /* __ieee754_hypotl(x,y)
  *
  * Method :
@@ -72,9 +68,10 @@ static char rcsid[] = "$NetBSD: $";
 	SET_LDOUBLE_EXP(b,eb);	/* b <- |b| */
 	if((ea-eb)>0x46) {return a+b;} /* x/y > 2**70 */
 	k=0;
-	if(ea > 0x5f3f) {	/* a>2**8000 */
+	if(__builtin_expect(ea > 0x5f3f,0)) {	/* a>2**8000 */
 	   if(ea == 0x7fff) {	/* Inf or NaN */
-	       u_int32_t exp,high,low;
+	       u_int32_t exp __attribute__ ((unused));
+	       u_int32_t high,low;
 	       w = a+b;			/* for sNaN */
 	       GET_LDOUBLE_WORDS(exp,high,low,a);
 	       if(((high&0x7fffffff)|low)==0) w = a;
@@ -87,9 +84,10 @@ static char rcsid[] = "$NetBSD: $";
 	   SET_LDOUBLE_EXP(a,ea);
 	   SET_LDOUBLE_EXP(b,eb);
 	}
-	if(eb < 0x20bf) {	/* b < 2**-8000 */
+	if(__builtin_expect(eb < 0x20bf, 0)) {	/* b < 2**-8000 */
 	    if(eb == 0) {	/* subnormal b or 0 */
-	        u_int32_t exp,high,low;
+		u_int32_t exp __attribute__ ((unused));
+		u_int32_t high,low;
 		GET_LDOUBLE_WORDS(exp,high,low,b);
 		if((high|low)==0) return a;
 		SET_LDOUBLE_WORDS(t1, 0x7ffd, 0, 0);	/* t1=2^16382 */
@@ -131,3 +129,4 @@ static char rcsid[] = "$NetBSD: $";
 	    return t1*w;
 	} else return w;
 }
+strong_alias (__ieee754_hypotl, __hypotl_finite)

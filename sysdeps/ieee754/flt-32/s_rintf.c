@@ -13,29 +13,17 @@
  * ====================================================
  */
 
-#if defined(LIBM_SCCS) && !defined(lint)
-static char rcsid[] = "$NetBSD: s_rintf.c,v 1.4 1995/05/10 20:48:06 jtc Exp $";
-#endif
-
 #include "math.h"
 #include "math_private.h"
 
-#ifdef __STDC__
 static const float
-#else
-static float 
-#endif
 TWO23[2]={
   8.3886080000e+06, /* 0x4b000000 */
  -8.3886080000e+06, /* 0xcb000000 */
 };
 
-#ifdef __STDC__
-	float __rintf(float x)
-#else
-	float __rintf(x)
-	float x;
-#endif
+float
+__rintf(float x)
 {
 	int32_t i0,j0,sx;
 	u_int32_t i,i1;
@@ -69,4 +57,6 @@ TWO23[2]={
 	w = TWO23[sx]+x;
 	return w-TWO23[sx];
 }
+#ifndef __rintf
 weak_alias (__rintf, rintf)
+#endif

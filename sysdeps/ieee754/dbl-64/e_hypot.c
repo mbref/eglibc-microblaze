@@ -10,10 +10,6 @@
  * ====================================================
  */
 
-#if defined(LIBM_SCCS) && !defined(lint)
-static char rcsid[] = "$NetBSD: e_hypot.c,v 1.9 1995/05/12 04:57:27 jtc Exp $";
-#endif
-
 /* __ieee754_hypot(x,y)
  *
  * Method :
@@ -49,12 +45,8 @@ static char rcsid[] = "$NetBSD: e_hypot.c,v 1.9 1995/05/12 04:57:27 jtc Exp $";
 #include "math.h"
 #include "math_private.h"
 
-#ifdef __STDC__
-	double __ieee754_hypot(double x, double y)
-#else
-	double __ieee754_hypot(x,y)
-	double x, y;
-#endif
+double
+__ieee754_hypot(double x, double y)
 {
 	double a,b,t1,t2,y1,y2,w;
 	int32_t j,k,ha,hb;
@@ -68,7 +60,7 @@ static char rcsid[] = "$NetBSD: e_hypot.c,v 1.9 1995/05/12 04:57:27 jtc Exp $";
 	SET_HIGH_WORD(b,hb);	/* b <- |b| */
 	if((ha-hb)>0x3c00000) {return a+b;} /* x/y > 2**60 */
 	k=0;
-	if(ha > 0x5f300000) {	/* a>2**500 */
+	if(__builtin_expect(ha > 0x5f300000, 0)) {	/* a>2**500 */
 	   if(ha >= 0x7ff00000) {	/* Inf or NaN */
 	       u_int32_t low;
 	       w = a+b;			/* for sNaN */
@@ -83,7 +75,7 @@ static char rcsid[] = "$NetBSD: e_hypot.c,v 1.9 1995/05/12 04:57:27 jtc Exp $";
 	   SET_HIGH_WORD(a,ha);
 	   SET_HIGH_WORD(b,hb);
 	}
-	if(hb < 0x20b00000) {	/* b < 2**-500 */
+	if(__builtin_expect(hb < 0x20b00000, 0)) {	/* b < 2**-500 */
 	    if(hb <= 0x000fffff) {	/* subnormal b or 0 */
 	        u_int32_t low;
 		GET_LOW_WORD(low,b);
@@ -126,3 +118,4 @@ static char rcsid[] = "$NetBSD: e_hypot.c,v 1.9 1995/05/12 04:57:27 jtc Exp $";
 	    return t1*w;
 	} else return w;
 }
+strong_alias (__ieee754_hypot, __hypot_finite)

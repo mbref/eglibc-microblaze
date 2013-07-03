@@ -43,11 +43,7 @@
 #include "math.h"
 #include "math_private.h"
 
-#ifdef __STDC__
 static const long double
-#else
-static long double
-#endif
 tiny  = 1.0e-4900L,
 zero  = 0.0,
 pi_o_4  = 7.85398163397448309615660845819875699e-01L, /* 3ffe921fb54442d18469898cc51701b8 */
@@ -55,12 +51,8 @@ pi_o_2  = 1.57079632679489661923132169163975140e+00L, /* 3fff921fb54442d18469898
 pi      = 3.14159265358979323846264338327950280e+00L, /* 4000921fb54442d18469898cc51701b8 */
 pi_lo   = 8.67181013012378102479704402604335225e-35L; /* 3f8dcd129024e088a67cc74020bbea64 */
 
-#ifdef __STDC__
-	long double __ieee754_atan2l(long double y, long double x)
-#else
-	long double __ieee754_atan2l(y,x)
-	long double  y,x;
-#endif
+long double
+__ieee754_atan2l(long double y, long double x)
 {
 	long double z;
 	int64_t k,m,hx,hy,ix,iy;
@@ -127,3 +119,4 @@ pi_lo   = 8.67181013012378102479704402604335225e-35L; /* 3f8dcd129024e088a67cc74
 	    	    return  (z-pi_lo)-pi;/* atan(-,-) */
 	}
 }
+strong_alias (__ieee754_atan2l, __atan2l_finite)

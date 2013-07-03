@@ -70,6 +70,9 @@ typedef enum
   GETSERVBYNAME,
   GETSERVBYPORT,
   GETFDSERV,
+  GETNETGRENT,
+  INNETGR,
+  GETFDNETGR,
   LASTREQ
 } request_type;
 
@@ -171,6 +174,24 @@ typedef struct
 } serv_response_header;
 
 
+/* Structure send in reply to netgroup query.  Note that this struct is
+   sent also if the service is disabled or there is no record found.  */
+typedef struct
+{
+  int32_t version;
+  int32_t found;
+  nscd_ssize_t nresults;
+  nscd_ssize_t result_len;
+} netgroup_response_header;
+
+typedef struct
+{
+  int32_t version;
+  int32_t found;
+  int32_t result;
+} innetgroup_response_header;
+
+
 /* Type for offsets in data part of database.  */
 typedef uint32_t ref_t;
 /* Value for invalid/no reference.  */
@@ -210,6 +231,8 @@ struct datahead
     ai_response_header aidata;
     initgr_response_header initgrdata;
     serv_response_header servdata;
+    netgroup_response_header netgroupdata;
+    innetgroup_response_header innetgroupdata;
     nscd_ssize_t align1;
     nscd_time_t align2;
   } data[0];
@@ -237,10 +260,15 @@ struct hashentry
 
 
 /* Current persistent database version.  */
-#define DB_VERSION	1
+#define DB_VERSION	2
 
 /* Maximum time allowed between updates of the timestamp.  */
 #define MAPPING_TIMEOUT (5 * 60)
+
+
+/* Used indices for the EXTRA_DATA element of 'database_pers_head'.
+   Each database has its own indices.  */
+#define NSCD_HST_IDX_CONF_TIMESTAMP	0
 
 
 /* Header of persistent database file.  */
@@ -251,6 +279,8 @@ struct database_pers_head
   volatile int32_t gc_cycle;
   volatile int32_t nscd_certainly_running;
   volatile nscd_time_t timestamp;
+  /* Room for extensions.  */
+  volatile uint32_t extra_data[4];
 
   nscd_ssize_t module;
   nscd_ssize_t data_size;
@@ -298,6 +328,12 @@ struct locked_map_ptr
 extern int __nscd_open_socket (const char *key, size_t keylen,
 			       request_type type, void *response,
 			       size_t responselen) attribute_hidden;
+
+/* Try to get a file descriptor for the shared meory segment
+   containing the database.  */
+extern struct mapped_database *__nscd_get_mapping (request_type type,
+						   const char *key,
+						   struct mapped_database **mappedp) attribute_hidden;
 
 /* Get reference of mapping.  */
 extern struct mapped_database *__nscd_get_map_ref (request_type type,
@@ -347,5 +383,8 @@ extern ssize_t writeall (int fd, const void *buf, size_t len)
   attribute_hidden;
 extern ssize_t sendfileall (int tofd, int fromfd, off_t off, size_t len)
   attribute_hidden;
+
+/* Get netlink timestamp counter from mapped area or zero.  */
+extern uint32_t __nscd_get_nl_timestamp (void);
 
 #endif /* nscd.h */

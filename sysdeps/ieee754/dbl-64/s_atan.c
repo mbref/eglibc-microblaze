@@ -1,7 +1,7 @@
 /*
  * IBM Accurate Mathematical Library
  * written by International Business Machines Corp.
- * Copyright (C) 2001 Free Software Foundation
+ * Copyright (C) 2001, 2011 Free Software Foundation
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
@@ -37,7 +37,7 @@
 /*                                                                      */
 /************************************************************************/
 
-#include "dla.h"
+#include <dla.h>
 #include "mpa.h"
 #include "MathLib.h"
 #include "uatan.tbl"
@@ -46,14 +46,23 @@
 
 void __mpatan(mp_no *,mp_no *,int);          /* see definition in mpatan.c */
 static double atanMp(double,const int[]);
-double __signArctan(double,double);
+
+  /* Fix the sign of y and return */
+static double  __signArctan(double x,double y){
+  return __copysign(y, x);
+}
+
+
 /* An ultimate atan() routine. Given an IEEE double machine number x,    */
 /* routine computes the correctly rounded (to nearest) value of atan(x). */
 double atan(double x) {
 
 
-  double cor,s1,ss1,s2,ss2,t1,t2,t3,t4,t5,t6,t7,t8,t9,t10,u,u2,u3,
+  double cor,s1,ss1,s2,ss2,t1,t2,t3,t7,t8,t9,t10,u,u2,u3,
          v,vv,w,ww,y,yy,z,zz;
+#ifndef DLA_FMS
+  double t4,t5,t6;
+#endif
 #if 0
   double y1,y2;
 #endif
@@ -198,14 +207,6 @@ double atan(double x) {
     }
   }
 
-}
-
-
-  /* Fix the sign of y and return */
-double  __signArctan(double x,double y){
-
-    if (x<ZERO) return -y;
-    else        return  y;
 }
 
  /* Final stages. Compute atan(x) by multiple precision arithmetic */

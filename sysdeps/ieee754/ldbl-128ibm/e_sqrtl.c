@@ -1,7 +1,7 @@
 /*
  * IBM Accurate Mathematical Library
  * written by International Business Machines Corp.
- * Copyright (C) 2001, 2004, 2006 Free Software Foundation
+ * Copyright (C) 2001, 2004, 2006, 2011 Free Software Foundation
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
@@ -107,3 +107,4 @@ long double __ieee754_sqrtl(long double x)
     return tm256.x*__ieee754_sqrtl(x*t512.x);
   }
 }
+strong_alias (__ieee754_sqrtl, __sqrtl_finite)

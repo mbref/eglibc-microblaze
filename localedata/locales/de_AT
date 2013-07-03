@@ -78,9 +78,7 @@ n_sign_posn               1
 END LC_MONETARY
 
 LC_NUMERIC
-decimal_point             "<U002C>"
-thousands_sep             ""
-grouping                  0;0
+copy "de_DE"
 END LC_NUMERIC
 
 LC_TIME

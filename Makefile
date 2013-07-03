@@ -33,20 +33,11 @@ all: lib others
 
 ifneq ($(AUTOCONF),no)
 
-ifeq ($(with-cvs),yes)
-define autoconf-it-cvs
-test ! -d CVS || cvs $(CVSOPTS) commit -m'Regenerated: autoconf $(ACFLAGS) $<' $@
-endef
-else
-autoconf-it-cvs =
-endif
-
 define autoconf-it
 @-rm -f $@.new
 $(AUTOCONF) $(ACFLAGS) $< > $@.new
 chmod a-w$(patsubst %,$(comma)a+x,$(filter .,$(@D))) $@.new
 mv -f $@.new $@
-$(autoconf-it-cvs)
 endef
 
 configure: configure.in aclocal.m4; $(autoconf-it)
@@ -147,10 +138,16 @@ lib: $(common-objpfx)libc.so
 
 lib: $(common-objpfx)linkobj/libc.so
 
-$(common-objpfx)linkobj/libc.so: $(elfobjdir)/soinit.os $(common-objpfx)linkobj/libc_pic.a $(elfobjdir)/sofini.os $(elfobjdir)/interp.os $(elfobjdir)/ld.so $(common-objpfx)shlib.lds $(common-objpfx)elf/ld.so
+$(common-objpfx)linkobj/libc.so: $(elfobjdir)/soinit.os \
+				 $(common-objpfx)linkobj/libc_pic.a \
+				 $(elfobjdir)/sofini.os \
+				 $(elfobjdir)/interp.os \
+				 $(elfobjdir)/ld.so \
+				 $(shlib-lds)
 	$(build-shlib)
 
-$(common-objpfx)linkobj/libc_pic.a: $(common-objpfx)libc_pic.a $(common-objpfx)sunrpc/librpc_compat_pic.a
+$(common-objpfx)linkobj/libc_pic.a: $(common-objpfx)libc_pic.a \
+				    $(common-objpfx)sunrpc/librpc_compat_pic.a
 	$(..)./scripts/mkinstalldirs $(common-objpfx)linkobj
 	(cd $(common-objpfx)linkobj; \
 	 $(AR) x ../libc_pic.a; \
@@ -166,8 +163,10 @@ endif
 $(common-objpfx)testrun.sh: $(common-objpfx)config.make \
 			    $(..)Makeconfig $(..)Makefile
 	(echo '#!/bin/sh'; \
-	 echo "GCONV_PATH='$(common-objpfx)iconvdata' \\"; \
-	 echo 'exec $(run-program-prefix) $${1+"$$@"}'; \
+	 echo 'builddir=`dirname "$$0"`'; \
+	 echo 'GCONV_PATH="$${builddir}/iconvdata" \'; \
+	 echo 'exec $(subst $(common-objdir),"$${builddir}",\
+			    $(run-program-prefix)) $${1+"$$@"}'; \
 	) > $@T
 	chmod a+x $@T
 	mv -f $@T $@
@@ -298,7 +297,8 @@ endif
 endif
 
 $(objpfx)check-local-headers.out: scripts/check-local-headers.sh
-	scripts/check-local-headers.sh "$(includedir)" "$(objpfx)" > $@
+	AWK='$(AWK)' scripts/check-local-headers.sh \
+	  "$(includedir)" "$(objpfx)" > $@
 
 ifneq ($(PERL),no)
 installed-headers = argp/argp.h assert/assert.h catgets/nl_types.h \
@@ -425,9 +425,6 @@ manual/dir-add.texi manual/dir-add.info: FORCE
 	$(MAKE) $(PARALLELMFLAGS) -C $(@D) $(@F)
 FAQ: scripts/gen-FAQ.pl FAQ.in
 	$(PERL) $^ > $@.new && rm -f $@ && mv $@.new $@ && chmod a-w $@
-ifeq ($(with-cvs),yes)
-	test ! -d CVS || cvs $(CVSOPTS) commit -m'Regenerated:  $(PERL) $^' $@
-endif
 FORCE:
 
 iconvdata/% localedata/% po/% manual/%: FORCE

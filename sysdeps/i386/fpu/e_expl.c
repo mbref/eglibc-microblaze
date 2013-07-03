@@ -75,3 +75,4 @@ __ieee754_expl (long double x)
        : "=t" (res) : "0" (x), "m" (c0), "m" (c1) : "ax", "dx");
   return res;
 }
+strong_alias (__ieee754_expl, __expl_finite)

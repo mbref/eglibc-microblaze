@@ -1,5 +1,5 @@
 /* Get loaded objects program headers.
-   Copyright (C) 2001-2004, 2006-2009, 2010 Free Software Foundation, Inc.
+   Copyright (C) 2001-2004, 2006-2009, 2010, 2011 Free Software Foundation, Inc.
    This file is part of the GNU C Library.
    Contributed by Jakub Jelinek <jakub@redhat.com>, 2001.
 
@@ -44,9 +44,10 @@ __dl_iterate_phdr (int (*callback) (struct dl_phdr_info *info,
 
   /* We have to determine the namespace of the caller since this determines
      which namespace is reported.  */
-  const void *caller = RETURN_ADDRESS (0);
   size_t nloaded = GL(dl_ns)[0]._ns_nloaded;
   Lmid_t ns = 0;
+#ifdef SHARED
+  const void *caller = RETURN_ADDRESS (0);
   for (Lmid_t cnt = GL(dl_nns) - 1; cnt > 0; --cnt)
     for (struct link_map *l = GL(dl_ns)[cnt]._ns_loaded; l; l = l->l_next)
       {
@@ -59,19 +60,20 @@ __dl_iterate_phdr (int (*callback) (struct dl_phdr_info *info,
 		|| _dl_addr_inside_object (l, (ElfW(Addr)) caller)))
 	  ns = cnt;
       }
+#endif
 
   for (l = GL(dl_ns)[ns]._ns_loaded; l != NULL; l = l->l_next)
     {
-      info.dlpi_addr = l->l_addr;
-      info.dlpi_name = l->l_name;
-      info.dlpi_phdr = l->l_phdr;
-      info.dlpi_phnum = l->l_phnum;
+      info.dlpi_addr = l->l_real->l_addr;
+      info.dlpi_name = l->l_real->l_name;
+      info.dlpi_phdr = l->l_real->l_phdr;
+      info.dlpi_phnum = l->l_real->l_phnum;
       info.dlpi_adds = GL(dl_load_adds);
       info.dlpi_subs = GL(dl_load_adds) - nloaded;
       info.dlpi_tls_data = NULL;
-      info.dlpi_tls_modid = l->l_tls_modid;
+      info.dlpi_tls_modid = l->l_real->l_tls_modid;
       if (info.dlpi_tls_modid != 0)
-	info.dlpi_tls_data = GLRO(dl_tls_get_addr_soft) (l);
+	info.dlpi_tls_data = GLRO(dl_tls_get_addr_soft) (l->l_real);
       ret = callback (&info, sizeof (struct dl_phdr_info), data);
       if (ret)
 	break;

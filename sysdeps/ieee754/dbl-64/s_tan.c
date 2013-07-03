@@ -1,7 +1,7 @@
 /*
  * IBM Accurate Mathematical Library
  * written by International Business Machines Corp.
- * Copyright (C) 2001, 2009 Free Software Foundation
+ * Copyright (C) 2001, 2009, 2011 Free Software Foundation
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
@@ -36,21 +36,30 @@
 
 #include <errno.h>
 #include "endian.h"
-#include "dla.h"
+#include <dla.h>
 #include "mpa.h"
 #include "MathLib.h"
 #include "math.h"
 
+#ifndef SECTION
+# define SECTION
+#endif
+
 static double tanMp(double);
 void __mptan(double, mp_no *, int);
 
-double tan(double x) {
+double
+SECTION
+tan(double x) {
 #include "utan.h"
 #include "utan.tbl"
 
   int ux,i,n;
   double a,da,a2,b,db,c,dc,c1,cc1,c2,cc2,c3,cc3,fi,ffi,gi,pz,s,sy,
-  t,t1,t2,t3,t4,t5,t6,t7,t8,t9,t10,w,x2,xn,xx2,y,ya,yya,z0,z,zz,z2,zz2;
+  t,t1,t2,t3,t4,t7,t8,t9,t10,w,x2,xn,xx2,y,ya,yya,z0,z,zz,z2,zz2;
+#ifndef DLA_FMS
+  double t5,t6;
+#endif
   int p;
   number num,v;
   mp_no mpa,mpt1,mpt2;
@@ -483,7 +492,9 @@ double tan(double x) {
 /* multiple precision stage                                              */
 /* Convert x to multi precision number,compute tan(x) by mptan() routine */
 /* and converts result back to double                                    */
-static double tanMp(double x)
+static double
+SECTION
+tanMp(double x)
 {
   int p;
   double y;

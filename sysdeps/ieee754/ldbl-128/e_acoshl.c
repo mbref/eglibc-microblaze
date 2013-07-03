@@ -30,20 +30,12 @@
 #include "math.h"
 #include "math_private.h"
 
-#ifdef __STDC__
 static const long double
-#else
-static long double
-#endif
 one	= 1.0,
 ln2	= 0.6931471805599453094172321214581766L;
 
-#ifdef __STDC__
-	long double __ieee754_acoshl(long double x)
-#else
-	long double __ieee754_acoshl(x)
-	long double x;
-#endif
+long double
+__ieee754_acoshl(long double x)
 {
 	long double t;
 	u_int64_t lx;
@@ -66,3 +58,4 @@ ln2	= 0.6931471805599453094172321214581766L;
 	    return __log1pl(t+__sqrtl(2.0L*t+t*t));
 	}
 }
+strong_alias (__ieee754_acoshl, __acoshl_finite)

@@ -1,6 +1,6 @@
 /* Machine-dependent ELF dynamic relocation inline functions.
    PowerPC64 version.
-   Copyright 1995-2005, 2006, 2008, 2010 Free Software Foundation, Inc.
+   Copyright 1995-2005, 2006, 2008, 2010, 2011 Free Software Foundation, Inc.
    This file is part of the GNU C Library.
 
    The GNU C Library is free software; you can redistribute it and/or
@@ -505,7 +505,6 @@ elf_machine_rela_relative (Elf64_Addr l_addr, const Elf64_Rela *reloc,
   *reloc_addr = l_addr + reloc->r_addend;
 }
 
-#if !defined RTLD_BOOTSTRAP || USE___THREAD
 /* This computes the value used by TPREL* relocs.  */
 auto inline Elf64_Addr __attribute__ ((always_inline, const))
 elf_machine_tprel (struct link_map *map,
@@ -524,7 +523,6 @@ elf_machine_tprel (struct link_map *map,
 # endif
   return 0;
 }
-#endif
 
 /* Call function at address VALUE (an OPD entry) to resolve ifunc relocs.  */
 auto inline Elf64_Addr __attribute__ ((always_inline))
@@ -558,13 +556,12 @@ elf_machine_rela (struct link_map *map,
 		  const Elf64_Rela *reloc,
 		  const Elf64_Sym *sym,
 		  const struct r_found_version *version,
-		  void *const reloc_addr_arg)
+		  void *const reloc_addr_arg,
+		  int skip_ifunc)
 {
   Elf64_Addr *const reloc_addr = reloc_addr_arg;
   const int r_type = ELF64_R_TYPE (reloc->r_info);
-#ifndef RTLD_BOOTSTRAP
   const Elf64_Sym *const refsym = sym;
-#endif
 
   if (r_type == R_PPC64_RELATIVE)
     {
@@ -583,7 +580,8 @@ elf_machine_rela (struct link_map *map,
 
   if (sym != NULL
       && __builtin_expect (ELFW(ST_TYPE) (sym->st_info) == STT_GNU_IFUNC, 0)
-      && __builtin_expect (sym->st_shndx != SHN_UNDEF, 1))
+      && __builtin_expect (sym->st_shndx != SHN_UNDEF, 1)
+      && __builtin_expect (!skip_ifunc, 1))
     value = resolve_ifunc (value, map, sym_map);
 
   /* For relocs that don't edit code, return.
@@ -596,11 +594,13 @@ elf_machine_rela (struct link_map *map,
       return;
 
     case R_PPC64_IRELATIVE:
+      if (__builtin_expect (!skip_ifunc, 1))
       value = resolve_ifunc (value, map, sym_map);
       *reloc_addr = value;
       return;
 
     case R_PPC64_JMP_IREL:
+      if (__builtin_expect (!skip_ifunc, 1))
       value = resolve_ifunc (value, map, sym_map);
       /* Fall thru */
     case R_PPC64_JMP_SLOT:
@@ -611,7 +611,6 @@ elf_machine_rela (struct link_map *map,
 #endif
       return;
 
-#if !defined RTLD_BOOTSTRAP || USE___THREAD
     case R_PPC64_DTPMOD64:
 # ifdef RTLD_BOOTSTRAP
       /* During startup the dynamic linker is always index 1.  */
@@ -692,7 +691,6 @@ elf_machine_rela (struct link_map *map,
       value = elf_machine_tprel (map, sym_map, sym, reloc);
       *(Elf64_Half *) reloc_addr = PPC_HIGHESTA (value);
       break;
-#endif
 
 #ifndef RTLD_BOOTSTRAP /* None of the following appear in ld.so */
     case R_PPC64_ADDR16_LO_DS:
@@ -852,7 +850,8 @@ elf_machine_rela (struct link_map *map,
 
 auto inline void __attribute__ ((always_inline))
 elf_machine_lazy_rel (struct link_map *map,
-		      Elf64_Addr l_addr, const Elf64_Rela *reloc)
+		      Elf64_Addr l_addr, const Elf64_Rela *reloc,
+		      int skip_ifunc)
 {
   /* elf_machine_runtime_setup handles this.  */
 }

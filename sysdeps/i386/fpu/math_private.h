@@ -7,10 +7,11 @@
 #define math_force_eval(x) \
 do							\
   {							\
+    __typeof (x) __x = (x);				\
     if (sizeof (x) <= sizeof (double))			\
-      __asm __volatile ("" : : "m" (x));		\
+      __asm __volatile ("" : : "m" (__x));		\
     else						\
-      __asm __volatile ("" : : "f" (x));		\
+      __asm __volatile ("" : : "f" (__x));		\
   }							\
 while (0)
 

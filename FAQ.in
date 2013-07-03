@@ -1041,10 +1041,7 @@ and gives more details for some topics.
 
 ??	The makefiles want to do a CVS commit.
 
-{UD} Only if you are not specifying the --without-cvs flag at configure
-time.  This is what you always have to use if you are checking sources
-directly out of the public CVS repository or you have your own private
-repository.
+{} Removed.  Does not apply anymore.
 
 ??	When compiling C++ programs, I get a compilation error in streambuf.h.
 

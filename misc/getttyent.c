@@ -37,10 +37,8 @@ static char sccsid[] = "@(#)getttyent.c	8.1 (Berkeley) 6/4/93";
 #include <ctype.h>
 #include <string.h>
 
-#ifdef USE_IN_LIBIO
 # define flockfile(s) _IO_flockfile (s)
 # define funlockfile(s) _IO_funlockfile (s)
-#endif
 
 static char zapchar;
 static FILE *tf;
@@ -192,7 +190,7 @@ setttyent()
 	if (tf) {
 		(void)rewind(tf);
 		return (1);
-	} else if ((tf = fopen(_PATH_TTYS, "rc"))) {
+	} else if ((tf = fopen(_PATH_TTYS, "rce"))) {
 		/* We do the locking ourselves.  */
 		__fsetlocking (tf, FSETLOCKING_BYCALLER);
 		return (1);

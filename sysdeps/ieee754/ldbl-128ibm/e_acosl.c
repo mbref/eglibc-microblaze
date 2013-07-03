@@ -326,3 +326,4 @@ __ieee754_acosl (x)
       return 2.0 * w;
     }
 }
+strong_alias (__ieee754_acosl, __acosl_finite)

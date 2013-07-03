@@ -279,3 +279,4 @@ __ieee754_logl(long double x)
   y += e * ln2a;
   return y;
 }
+strong_alias (__ieee754_logl, __logl_finite)

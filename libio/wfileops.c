@@ -340,7 +340,6 @@ static wint_t
 _IO_wfile_underflow_mmap (_IO_FILE *fp)
 {
   struct _IO_codecvt *cd;
-  enum __codecvt_result status;
   const char *read_stop;
 
   if (__builtin_expect (fp->_flags & _IO_NO_READS, 0))
@@ -379,7 +378,7 @@ _IO_wfile_underflow_mmap (_IO_FILE *fp)
   fp->_wide_data->_IO_last_state = fp->_wide_data->_IO_state;
   fp->_wide_data->_IO_read_base = fp->_wide_data->_IO_read_ptr =
     fp->_wide_data->_IO_buf_base;
-  status = (*cd->__codecvt_do_in) (cd, &fp->_wide_data->_IO_state,
+  (*cd->__codecvt_do_in) (cd, &fp->_wide_data->_IO_state,
 				   fp->_IO_read_ptr, fp->_IO_read_end,
 				   &read_stop,
 				   fp->_wide_data->_IO_read_ptr,

@@ -41,11 +41,9 @@
 #include <rpc/rpc.h>
 #include <rpc/clnt.h>
 
-#ifdef USE_IN_LIBIO
 # include <libio/iolibio.h>
 # define fflush(s) INTUSE(_IO_fflush) (s)
 # define __fdopen(fd,m) INTUSE(_IO_fdopen) (fd,m)
-#endif
 
 /*
  * returns pid, or -1 for failure

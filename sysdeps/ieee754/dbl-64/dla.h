@@ -1,7 +1,7 @@
 /*
  * IBM Accurate Mathematical Library
  * Written by International Business Machines Corp.
- * Copyright (C) 2001 Free Software Foundation, Inc.
+ * Copyright (C) 2001, 2011 Free Software Foundation, Inc.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
@@ -60,10 +60,15 @@
 /* satisfies z+zz = x*y exactly. p,hx,tx,hy,ty are temporary           */
 /* storage variables of type double.                                   */
 
+#ifdef DLA_FMS
+# define  EMULV(x,y,z,zz,p,hx,tx,hy,ty)          \
+	   z=x*y; zz=DLA_FMS(x,y,z);
+#else
 #define  EMULV(x,y,z,zz,p,hx,tx,hy,ty)          \
            p=CN*(x);  hx=((x)-p)+p;  tx=(x)-hx; \
            p=CN*(y);  hy=((y)-p)+p;  ty=(y)-hy; \
            z=(x)*(y); zz=(((hx*hy-z)+hx*ty)+tx*hy)+tx*ty;
+#endif
 
 
 /* Exact multiplication of two single-length floating point numbers, Dekker. */
@@ -71,10 +76,15 @@
 /* that satisfies z+zz = x*y exactly. p,hx,tx,hy,ty,q are temporary          */
 /* storage variables of type double.                                         */
 
+#ifdef DLA_FMS
+# define  MUL12(x,y,z,zz,p,hx,tx,hy,ty,q)        \
+	   EMULV(x,y,z,zz,p,hx,tx,hy,ty)
+#else
 #define  MUL12(x,y,z,zz,p,hx,tx,hy,ty,q)        \
            p=CN*(x);  hx=((x)-p)+p;  tx=(x)-hx; \
            p=CN*(y);  hy=((y)-p)+p;  ty=(y)-hy; \
            p=hx*hy;  q=hx*ty+tx*hy; z=p+q;  zz=((p-z)+q)+tx*ty;
+#endif
 
 
 /* Double-length addition, Dekker. The macro produces a double-length   */
@@ -165,10 +175,3 @@
              uu=(ABS(r)>ABS(s))   ? ((r-u)+s)   : ((s-u)+r)  ;         \
              w=uu+ss;  z=u+w;                                          \
              zz=(ABS(u)>ABS(w))   ? ((u-z)+w)   : ((w-z)+u)  ; }
-
-
-
-
-
-
-

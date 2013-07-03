@@ -1,5 +1,5 @@
 /* Declarations for math functions.
-   Copyright (C) 1991-1993, 1995-1999, 2001, 2002, 2004, 2006, 2009
+   Copyright (C) 1991-1993, 1995-1999, 2001, 2002, 2004, 2006, 2009, 2011
    Free Software Foundation, Inc.
    This file is part of the GNU C Library.
 
@@ -98,9 +98,8 @@ __BEGIN_DECLS
 # undef	__MATH_PRECNAME
 
 # if (__STDC__ - 0 || __GNUC__ - 0) \
-     && (!defined __NO_LONG_DOUBLE_MATH \
-	 || defined __LDBL_COMPAT \
-	 || !defined _LIBC)
+     && (!(defined __NO_LONG_DOUBLE_MATH && defined _LIBC) \
+	 || defined __LDBL_COMPAT)
 #  ifdef __LDBL_COMPAT
 
 #   ifdef __USE_ISOC99
@@ -131,6 +130,7 @@ extern long double __REDIRECT_NTH (nexttowardl,
 
 /* Include the file of declarations again, this time using `long double'
    instead of `double' and appending l to each function name.  */
+
 #  ifndef _Mlong_double_
 #   define _Mlong_double_	long double
 #  endif
@@ -142,6 +142,7 @@ extern long double __REDIRECT_NTH (nexttowardl,
 #  endif
 #  define _Mdouble_BEGIN_NAMESPACE __BEGIN_NAMESPACE_C99
 #  define _Mdouble_END_NAMESPACE   __END_NAMESPACE_C99
+#  define __MATH_DECLARE_LDOUBLE   1
 #  include <bits/mathcalls.h>
 #  undef _Mdouble_
 #  undef _Mdouble_BEGIN_NAMESPACE
@@ -418,6 +419,12 @@ extern int matherr (struct exception *__exc);
 /* Get machine-dependent inline versions (if there are any).  */
 #ifdef __USE_EXTERN_INLINES
 # include <bits/mathinline.h>
+#endif
+
+/* Define special entry points to use when the compiler got told to
+   only expect finite results.  */
+#if defined __FINITE_MATH_ONLY__ && __FINITE_MATH_ONLY__ > 0
+# include <bits/math-finite.h>
 #endif
 
 #ifdef __USE_ISOC99

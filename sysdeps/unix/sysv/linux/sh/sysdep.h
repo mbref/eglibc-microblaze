@@ -1,5 +1,5 @@
-/* Copyright (C) 1992,1993,1995,1996,1997,1998,1999,2000,2002,2003,2004,
-   2005,2006,2009	Free Software Foundation, Inc.
+/* Copyright (C) 1992,1993,1995-2000,2002-2006,2009,2011
+	Free Software Foundation, Inc.
    This file is part of the GNU C Library.
    Contributed by Ulrich Drepper, <drepper@gnu.ai.mit.edu>, August 1995.
    Changed by Kaz Kojima, <kkojima@rr.iij4u.or.jp>.
@@ -114,7 +114,6 @@
 
 # elif defined _LIBC_REENTRANT
 
-#  if USE___THREAD
 #   ifndef NOT_IN_libc
 #    define SYSCALL_ERROR_ERRNO __libc_errno
 #   else
@@ -138,43 +137,6 @@
      0: .long _GLOBAL_OFFSET_TABLE_; \
      1: .long SYSCALL_ERROR_ERRNO@GOTTPOFF
 #  else
-#   define SYSCALL_ERROR_HANDLER \
-	neg r0,r1; \
-	mov.l r14,@-r15; \
-	cfi_adjust_cfa_offset (4); \
-	cfi_rel_offset (r14, 0); \
-	mov.l r12,@-r15; \
-	cfi_adjust_cfa_offset (4); \
-	cfi_rel_offset (r12, 0); \
-	mov.l r1,@-r15; \
-	cfi_adjust_cfa_offset (4); \
-	cfi_rel_offset (r1, 0); \
-	mov.l 0f,r12; \
-	mova 0f,r0; \
-	add r0,r12; \
-	sts.l pr,@-r15; \
-	cfi_adjust_cfa_offset (4); \
-	cfi_rel_offset (pr, 0); \
-	mov r15,r14; \
-	cfi_def_cfa_register (r14); \
-	mov.l 1f,r1; \
-	bsrf r1; \
-         nop; \
-     2: mov r14,r15; \
-	lds.l @r15+,pr; \
-	mov.l @r15+,r1; \
-	mov.l r1,@r0; \
-	mov.l @r15+,r12; \
-	mov.l @r15+,r14; \
-	bra .Lpseudo_end; \
-	 mov _IMM1,r0; \
-	.align 2; \
-     0: .long _GLOBAL_OFFSET_TABLE_; \
-     1: .long PLTJMP(C_SYMBOL_NAME(__errno_location))-(2b-.)
-/* A quick note: it is assumed that the call to `__errno_location' does
-   not modify the stack!  */
-#  endif
-# else
 /* Store (-r0) into errno through the GOT.  */
 #  define SYSCALL_ERROR_HANDLER						      \
 	neg r0,r1; \

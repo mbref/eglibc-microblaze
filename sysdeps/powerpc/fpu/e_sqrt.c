@@ -1,5 +1,5 @@
 /* Double-precision floating point square root.
-   Copyright (C) 1997, 2002, 2003, 2004, 2008 Free Software Foundation, Inc.
+   Copyright (C) 1997, 2002-2004, 2008, 2011 Free Software Foundation, Inc.
    This file is part of the GNU C Library.
 
    The GNU C Library is free software; you can redistribute it and/or
@@ -46,14 +46,8 @@ extern const float __t_sqrt[1024];
    generated guesses (which mostly runs on the integer unit, while the
    Newton-Raphson is running on the FPU).  */
 
-#ifdef __STDC__
 double
 __slow_ieee754_sqrt (double x)
-#else
-double
-__slow_ieee754_sqrt (x)
-     double x;
-#endif
 {
   const float inf = a_inf.value;
 
@@ -160,14 +154,9 @@ __slow_ieee754_sqrt (x)
   return f_wash (x);
 }
 
-#ifdef __STDC__
+#undef __ieee754_sqrt
 double
 __ieee754_sqrt (double x)
-#else
-double
-__ieee754_sqrt (x)
-     double x;
-#endif
 {
   double z;
 
@@ -184,3 +173,4 @@ __ieee754_sqrt (x)
 
   return z;
 }
+strong_alias (__ieee754_sqrt, __sqrt_finite)

@@ -13,10 +13,6 @@
  * ====================================================
  */
 
-#if defined(LIBM_SCCS) && !defined(lint)
-static char rcsid[] = "$NetBSD: e_hypotl.c,v 1.9 1995/05/12 04:57:27 jtc Exp $";
-#endif
-
 /* __ieee754_hypotl(x,y)
  *
  * Method :
@@ -52,12 +48,8 @@ static char rcsid[] = "$NetBSD: e_hypotl.c,v 1.9 1995/05/12 04:57:27 jtc Exp $";
 #include "math.h"
 #include "math_private.h"
 
-#ifdef __STDC__
-	long double __ieee754_hypotl(long double x, long double y)
-#else
-	long double __ieee754_hypotl(x,y)
-	long double x, y;
-#endif
+long double
+__ieee754_hypotl(long double x, long double y)
 {
 	long double a,b,t1,t2,y1,y2,w;
 	int64_t j,k,ha,hb;
@@ -130,3 +122,4 @@ static char rcsid[] = "$NetBSD: e_hypotl.c,v 1.9 1995/05/12 04:57:27 jtc Exp $";
 	    return t1*w;
 	} else return w;
 }
+strong_alias (__ieee754_hypotl, __hypotl_finite)

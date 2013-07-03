@@ -13,22 +13,14 @@
  * ====================================================
  */
 
-#if defined(LIBM_SCCS) && !defined(lint)
-static char rcsid[] = "$NetBSD: s_expm1f.c,v 1.5 1995/05/10 20:47:11 jtc Exp $";
-#endif
-
 #include <errno.h>
 #include "math.h"
 #include "math_private.h"
 
-static const volatile float huge = 1.0e+30;
-static const volatile float tiny = 1.0e-30;
+static const float huge = 1.0e+30;
+static const float tiny = 1.0e-30;
 
-#ifdef __STDC__
 static const float
-#else
-static float
-#endif
 one		= 1.0,
 o_threshold	= 8.8721679688e+01,/* 0x42b17180 */
 ln2_hi		= 6.9313812256e-01,/* 0x3f317180 */
@@ -41,12 +33,8 @@ Q3  =  -7.9365076090e-05, /* 0xb8a670cd */
 Q4  =   4.0082177293e-06, /* 0x36867e54 */
 Q5  =  -2.0109921195e-07; /* 0xb457edbb */
 
-#ifdef __STDC__
-	float __expm1f(float x)
-#else
-	float __expm1f(x)
-	float x;
-#endif
+float
+__expm1f(float x)
 {
 	float y,hi,lo,c,t,e,hxs,hfx,r1;
 	int32_t k,xsb;
@@ -70,7 +58,7 @@ Q5  =  -2.0109921195e-07; /* 0xb457edbb */
 		}
 	    }
 	    if(xsb!=0) { /* x < -27*ln2, return -1.0 with inexact */
-		if(x+tiny<(float)0.0)	/* raise inexact */
+		math_force_eval(x+tiny);/* raise inexact */
 		return tiny-one;	/* return -1 */
 	    }
 	}

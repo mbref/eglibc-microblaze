@@ -1,6 +1,5 @@
 /* Hierarchial argument parsing help output
-   Copyright (C) 1995-2003, 2004, 2005, 2006, 2007
-   Free Software Foundation, Inc.
+   Copyright (C) 1995-2007, 2011 Free Software Foundation, Inc.
    This file is part of the GNU C Library.
    Written by Miles Bader <miles@gnu.ai.mit.edu>.
 
@@ -1875,7 +1874,7 @@ __argp_failure (const struct argp_state *state, int status, int errnum,
 #endif
 	    }
 
-#ifdef USE_IN_LIBIO
+#ifdef _LIBC
 	  if (_IO_fwide (stream, 0) > 0)
             {
 #if ! _LIBC || __OPTION_POSIX_WIDE_CHAR_DEVICE_IO

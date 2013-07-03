@@ -1,4 +1,4 @@
-/* Copyright (C) 2002, 2003, 2005, 2007, 2008 Free Software Foundation, Inc.
+/* Copyright (C) 2002,2003,2005,2007,2008,2011 Free Software Foundation, Inc.
    This file is part of the GNU C Library.
    Contributed by Ulrich Drepper <drepper@redhat.com>, 2002.
 
@@ -81,7 +81,6 @@ __new_sem_post:
 4:
 #endif
 	addl	$_GLOBAL_OFFSET_TABLE_, %ebx
-#if USE___THREAD
 # ifdef NO_TLS_DIRECT_SEG_REFS
 	movl	errno@gotntpoff(%ebx), %edx
 	addl	%gs:0, %edx
@@ -90,10 +89,6 @@ __new_sem_post:
 	movl	errno@gotntpoff(%ebx), %edx
 	movl	$EINVAL, %gs:(%edx)
 # endif
-#else
-	call	__errno_location@plt
-	movl	$EINVAL, (%eax)
-#endif
 
 	orl	$-1, %eax
 	popl	%ebx
@@ -107,7 +102,6 @@ __new_sem_post:
 5:
 #endif
 	addl	$_GLOBAL_OFFSET_TABLE_, %ebx
-#if USE___THREAD
 # ifdef NO_TLS_DIRECT_SEG_REFS
 	movl	errno@gotntpoff(%ebx), %edx
 	addl	%gs:0, %edx
@@ -116,10 +110,6 @@ __new_sem_post:
 	movl	errno@gotntpoff(%ebx), %edx
 	movl	$EOVERFLOW, %gs:(%edx)
 # endif
-#else
-	call	__errno_location@plt
-	movl	$EOVERFLOW, (%eax)
-#endif
 
 	orl	$-1, %eax
 	popl	%ebx

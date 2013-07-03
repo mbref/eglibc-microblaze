@@ -46,10 +46,7 @@
 #include <errno.h>
 #include <stdlib.h>
 #include <libintl.h>
-
-#ifdef USE_IN_LIBIO
 # include <wchar.h>
-#endif
 
 /*
  * Ops vector for AF_UNIX based rpc service handle

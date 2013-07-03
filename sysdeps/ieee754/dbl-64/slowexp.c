@@ -1,7 +1,7 @@
 /*
  * IBM Accurate Mathematical Library
  * written by International Business Machines Corp.
- * Copyright (C) 2001 Free Software Foundation
+ * Copyright (C) 2001, 2011 Free Software Foundation
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
@@ -31,10 +31,16 @@
 #include "mpa.h"
 #include "math_private.h"
 
+#ifndef SECTION
+# define SECTION
+#endif
+
 void __mpexp(mp_no *x, mp_no *y, int p);
 
 /*Converting from double precision to Multi-precision and calculating  e^x */
-double __slowexp(double x) {
+double
+SECTION
+__slowexp(double x) {
   double w,z,res,eps=3.0e-26;
 #if 0
   double y;

@@ -10,10 +10,6 @@
  * ====================================================
  */
 
-#if defined(LIBM_SCCS) && !defined(lint)
-static char rcsid[] = "$NetBSD: e_atanh.c,v 1.8 1995/05/10 20:44:55 jtc Exp $";
-#endif
-
 /* __ieee754_atanh(x)
  * Method :
  *    1.Reduced x to positive by atanh(-x) = -atanh(x)
@@ -35,24 +31,12 @@ static char rcsid[] = "$NetBSD: e_atanh.c,v 1.8 1995/05/10 20:44:55 jtc Exp $";
 #include "math.h"
 #include "math_private.h"
 
-#ifdef __STDC__
 static const long double one = 1.0L, huge = 1e300L;
-#else
-static long double one = 1.0L, huge = 1e300L;
-#endif
 
-#ifdef __STDC__
 static const long double zero = 0.0L;
-#else
-static long double zero = 0.0L;
-#endif
 
-#ifdef __STDC__
-	long double __ieee754_atanhl(long double x)
-#else
-	long double __ieee754_atanhl(x)
-	long double x;
-#endif
+long double
+__ieee754_atanhl(long double x)
 {
 	long double t;
 	int64_t hx,ix;
@@ -77,3 +61,4 @@ static long double zero = 0.0L;
 	    t = 0.5*__log1pl((x+x)/(one-x));
 	if(hx>=0) return t; else return -t;
 }
+strong_alias (__ieee754_atanhl, __atanhl_finite)

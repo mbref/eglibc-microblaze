@@ -7,8 +7,6 @@
 
 #include <machine/asm.h>
 
-RCSID("$NetBSD: e_scalb.S,v 1.4 1995/05/08 23:49:52 jtc Exp $")
-
 #ifdef __ELF__
 	.section .rodata
 #else
@@ -20,7 +18,6 @@ RCSID("$NetBSD: e_scalb.S,v 1.4 1995/05/08 23:49:52 jtc Exp $")
 zero_nan:
 	.double 0.0
 nan:	.byte 0, 0, 0, 0, 0, 0, 0xff, 0x7f
-minus_zero:
 	.byte 0, 0, 0, 0, 0, 0, 0, 0x80
 	.byte 0, 0, 0, 0, 0, 0, 0xff, 0x7f
 	ASM_SIZE_DIRECTIVE(zero_nan)
@@ -100,3 +97,4 @@ ENTRY(__ieee754_scalb)
 	fdiv	%st
 	ret
 END(__ieee754_scalb)
+strong_alias (__ieee754_scalb, __scalb_finite)

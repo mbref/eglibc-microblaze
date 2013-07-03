@@ -1,4 +1,4 @@
-/* Copyright (C) 2002, 2003, 2005, 2007 Free Software Foundation, Inc.
+/* Copyright (C) 2002, 2003, 2005, 2007, 2011 Free Software Foundation, Inc.
    This file is part of the GNU C Library.
    Contributed by Ulrich Drepper <drepper@redhat.com>, 2002.
 
@@ -114,7 +114,6 @@ __new_sem_wait:
 8:
 #endif
 	addl	$_GLOBAL_OFFSET_TABLE_, %ebx
-#if USE___THREAD
 # ifdef NO_TLS_DIRECT_SEG_REFS
 	movl	errno@gotntpoff(%ebx), %edx
 	addl	%gs:0, %edx
@@ -123,10 +122,6 @@ __new_sem_wait:
 	movl	errno@gotntpoff(%ebx), %edx
 	movl	%esi, %gs:(%edx)
 # endif
-#else
-	call	__errno_location@plt
-	movl	%esi, (%eax)
-#endif
 	orl	$-1, %eax
 
 	jmp	9b
@@ -333,7 +328,6 @@ __old_sem_wait:
 4:
 #endif
 	addl	$_GLOBAL_OFFSET_TABLE_, %ebx
-#if USE___THREAD
 # ifdef NO_TLS_DIRECT_SEG_REFS
 	movl	errno@gotntpoff(%ebx), %edx
 	addl	%gs:0, %edx
@@ -342,10 +336,6 @@ __old_sem_wait:
 	movl	errno@gotntpoff(%ebx), %edx
 	movl	%esi, %gs:(%edx)
 # endif
-#else
-	call	__errno_location@plt
-	movl	%esi, (%eax)
-#endif
 	orl	$-1, %eax
 	jmp	5b
 	cfi_endproc

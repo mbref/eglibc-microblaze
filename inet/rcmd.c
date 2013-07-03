@@ -488,7 +488,7 @@ iruserfopen (const char *file, uid_t okuser)
     cp = _("not regular file");
   else
     {
-      res = fopen (file, "rc");
+      res = fopen (file, "rce");
       if (!res)
 	cp = _("cannot open");
       else if (__fxstat64 (_STAT_VER, fileno (res), &st) < 0)

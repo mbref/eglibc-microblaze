@@ -159,3 +159,4 @@ __ieee754_asinl (x)
   else
     return -t;
 }
+strong_alias (__ieee754_asinl, __asinl_finite)

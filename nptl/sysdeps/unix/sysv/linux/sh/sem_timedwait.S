@@ -1,4 +1,4 @@
-/* Copyright (C) 2003, 2004, 2007 Free Software Foundation, Inc.
+/* Copyright (C) 2003, 2004, 2007, 2011 Free Software Foundation, Inc.
    This file is part of the GNU C Library.
 
    The GNU C Library is free software; you can redistribute it and/or
@@ -173,7 +173,6 @@ sem_timedwait:
 	mov.l	.Lgot2, r12
 	add	r0, r12
 
-#if USE___THREAD
 	mov.l	.Lerrno2, r0
 	stc	gbr, r1
 	mov.l	@(r0, r12), r0
@@ -183,12 +182,6 @@ sem_timedwait:
 .Lerrno2:
  	.long	errno@GOTTPOFF
 .Lexit:
-#else
-	mov.l	.Lerrloc2, r1
-	bsrf	r1
-	 nop
-.Lerrloc2b:
-#endif
 	mov.l	r10, @r0
 	DEC (@(NWAITERS,r8), r2)
 	bra	10b
@@ -201,10 +194,6 @@ sem_timedwait:
 	.long	1000000000
 .Lgot2:
 	.long	_GLOBAL_OFFSET_TABLE_
-#if !USE___THREAD
-.Lerrloc2:
-	.long	__errno_location@PLT-(.Lerrloc2b-.)
-#endif
 .Lenable0:
 	.long	__pthread_enable_asynccancel-.Lenable0b
 .Ldisable0:

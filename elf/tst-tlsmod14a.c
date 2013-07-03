@@ -3,8 +3,6 @@
 
 #include <tls.h>
 
-#if HAVE___THREAD
-
 # define AL 4096
 struct foo
 {
@@ -37,5 +35,3 @@ FCT (void)
 
   return result;
 }
-
-#endif

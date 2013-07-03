@@ -10,10 +10,6 @@
  * ====================================================
  */
 
-#if defined(LIBM_SCCS) && !defined(lint)
-static char rcsid[] = "$NetBSD: e_cosh.c,v 1.7 1995/05/10 20:44:58 jtc Exp $";
-#endif
-
 /* __ieee754_cosh(x)
  * Method :
  * mathematically cosh(x) if defined to be (exp(x)+exp(-x))/2
@@ -38,18 +34,10 @@ static char rcsid[] = "$NetBSD: e_cosh.c,v 1.7 1995/05/10 20:44:58 jtc Exp $";
 #include "math.h"
 #include "math_private.h"
 
-#ifdef __STDC__
 static const long double one = 1.0L, half=0.5L, huge = 1.0e300L;
-#else
-static long double one = 1.0L, half=0.5L, huge = 1.0e300L;
-#endif
 
-#ifdef __STDC__
-	long double __ieee754_coshl(long double x)
-#else
-	long double __ieee754_coshl(x)
-	long double x;
-#endif
+long double
+__ieee754_coshl (long double x)
 {
 	long double t,w;
 	int64_t ix;
@@ -88,3 +76,4 @@ static long double one = 1.0L, half=0.5L, huge = 1.0e300L;
     /* |x| > overflowthresold, cosh(x) overflow */
 	return huge*huge;
 }
+strong_alias (__ieee754_coshl, __coshl_finite)

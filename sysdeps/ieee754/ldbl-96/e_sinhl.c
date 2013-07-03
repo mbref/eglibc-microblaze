@@ -39,18 +39,10 @@ static char rcsid[] = "$NetBSD: $";
 #include "math.h"
 #include "math_private.h"
 
-#ifdef __STDC__
 static const long double one = 1.0, shuge = 1.0e4931L;
-#else
-static long double one = 1.0, shuge = 1.0e4931L;
-#endif
 
-#ifdef __STDC__
-	long double __ieee754_sinhl(long double x)
-#else
-	long double __ieee754_sinhl(x)
-	long double x;
-#endif
+long double
+__ieee754_sinhl(long double x)
 {
 	long double t,w,h;
 	u_int32_t jx,ix,i0,i1;
@@ -60,7 +52,7 @@ static long double one = 1.0, shuge = 1.0e4931L;
 	ix = jx&0x7fff;
 
     /* x is INF or NaN */
-	if(ix==0x7fff) return x+x;
+	if(__builtin_expect(ix==0x7fff, 0)) return x+x;
 
 	h = 0.5;
 	if (jx & 0x8000) h = -h;
@@ -89,3 +81,4 @@ static long double one = 1.0, shuge = 1.0e4931L;
     /* |x| > overflowthreshold, sinhl(x) overflow */
 	return x*shuge;
 }
+strong_alias (__ieee754_sinhl, __sinhl_finite)

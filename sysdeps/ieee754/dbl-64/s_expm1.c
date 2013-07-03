@@ -13,10 +13,6 @@
    for performance improvement on pipelined processors.
 */
 
-#if defined(LIBM_SCCS) && !defined(lint)
-static char rcsid[] = "$NetBSD: s_expm1.c,v 1.8 1995/05/10 20:47:09 jtc Exp $";
-#endif
-
 /* expm1(x)
  * Returns exp(x)-1, the exponential of x minus 1.
  *
@@ -116,11 +112,7 @@ static char rcsid[] = "$NetBSD: s_expm1.c,v 1.8 1995/05/10 20:47:09 jtc Exp $";
 #include "math.h"
 #include "math_private.h"
 #define one Q[0]
-#ifdef __STDC__
 static const double
-#else
-static double
-#endif
 huge		= 1.0e+300,
 tiny		= 1.0e-300,
 o_threshold	= 7.09782712893383973096e+02,/* 0x40862E42, 0xFEFA39EF */
@@ -134,12 +126,8 @@ Q[]  =  {1.0, -3.33333333333331316428e-02, /* BFA11111 111110F4 */
    4.00821782732936239552e-06, /* 3ED0CFCA 86E65239 */
   -2.01099218183624371326e-07}; /* BE8AFDB7 6E09C32D */
 
-#ifdef __STDC__
-	double __expm1(double x)
-#else
-	double __expm1(x)
-	double x;
-#endif
+double
+__expm1(double x)
 {
 	double y,hi,lo,c,t,e,hxs,hfx,r1,h2,h4,R1,R2,R3;
 	int32_t k,xsb;
@@ -166,7 +154,7 @@ Q[]  =  {1.0, -3.33333333333331316428e-02, /* BFA11111 111110F4 */
 		}
 	    }
 	    if(xsb!=0) { /* x < -56*ln2, return -1.0 with inexact */
-		if(x+tiny<0.0)		/* raise inexact */
+		math_force_eval(x+tiny);	/* raise inexact */
 		return tiny-one;	/* return -1 */
 	    }
 	}

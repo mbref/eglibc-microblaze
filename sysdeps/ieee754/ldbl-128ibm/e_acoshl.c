@@ -10,10 +10,6 @@
  * ====================================================
  */
 
-#if defined(LIBM_SCCS) && !defined(lint)
-static char rcsid[] = "$NetBSD: e_acosh.c,v 1.9 1995/05/12 04:57:18 jtc Exp $";
-#endif
-
 /* __ieee754_acosh(x)
  * Method :
  *	Based on
@@ -31,20 +27,12 @@ static char rcsid[] = "$NetBSD: e_acosh.c,v 1.9 1995/05/12 04:57:18 jtc Exp $";
 #include "math.h"
 #include "math_private.h"
 
-#ifdef __STDC__
 static const long double
-#else
-static long double
-#endif
 one	= 1.0L,
 ln2	= 6.93147180559945286227e-01L;  /* 0x3FE62E42, 0xFEFA39EF */
 
-#ifdef __STDC__
-	long double __ieee754_acoshl(long double x)
-#else
-	long double __ieee754_acoshl(x)
-	long double x;
-#endif
+long double
+__ieee754_acoshl(long double x)
 {
 	long double t;
 	int64_t hx;
@@ -67,3 +55,4 @@ ln2	= 6.93147180559945286227e-01L;  /* 0x3FE62E42, 0xFEFA39EF */
 	    return __log1p(t+__sqrtl(2.0*t+t*t));
 	}
 }
+strong_alias (__ieee754_acoshl, __acoshl_finite)

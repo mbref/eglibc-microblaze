@@ -1,5 +1,5 @@
 /* clock_gettime -- Get current time from a POSIX clockid_t.  Linux version.
-   Copyright (C) 2003,2004,2005,2006,2007,2010 Free Software Foundation, Inc.
+   Copyright (C) 2003,2004,2005,2006,2007,2010,2011 Free Software Foundation, Inc.
    This file is part of the GNU C Library.
 
    The GNU C Library is free software; you can redistribute it and/or
@@ -32,19 +32,25 @@
 # include <bits/libc-vdso.h>
 #endif
 
-#define SYSCALL_GETTIME \
-  retval = INLINE_VSYSCALL (clock_gettime, 2, clock_id, tp); \
-  break
+#ifndef SYSCALL_GETTIME
+# define SYSCALL_GETTIME(id, tp) \
+  INLINE_VSYSCALL (clock_gettime, 2, id, tp)
+#endif
+#ifndef INTERNAL_GETTIME
+# define INTERNAL_GETTIME(id, tp) \
+  INTERNAL_VSYSCALL (clock_gettime, err, 2, id, tp)
+#endif
 
 #ifdef __ASSUME_POSIX_TIMERS
 
 /* This means the REALTIME and MONOTONIC clock are definitely
    supported in the kernel.  */
 # define SYSDEP_GETTIME							      \
-  SYSDEP_GETTIME_CPUTIME						      \
+  SYSDEP_GETTIME_CPUTIME;						      \
   case CLOCK_REALTIME:							      \
   case CLOCK_MONOTONIC:							      \
-    SYSCALL_GETTIME
+    retval = SYSCALL_GETTIME (clock_id, tp);				      \
+    break
 
 # define __libc_missing_posix_timers 0
 #elif defined __NR_clock_gettime
@@ -59,7 +65,7 @@ maybe_syscall_gettime (clockid_t clock_id, struct timespec *tp)
   if (!__libc_missing_posix_timers)
     {
       INTERNAL_SYSCALL_DECL (err);
-      int r = INTERNAL_VSYSCALL (clock_gettime, err, 2, clock_id, tp);
+      int r = INTERNAL_GETTIME (clock_id, tp);
       if (!INTERNAL_SYSCALL_ERROR_P (r, err))
 	return 0;
 
@@ -77,7 +83,7 @@ maybe_syscall_gettime (clockid_t clock_id, struct timespec *tp)
 /* The REALTIME and MONOTONIC clock might be available.  Try the
    syscall first.  */
 # define SYSDEP_GETTIME							      \
-  SYSDEP_GETTIME_CPUTIME						      \
+  SYSDEP_GETTIME_CPUTIME;						      \
   case CLOCK_REALTIME:							      \
   case CLOCK_MONOTONIC:							      \
   case CLOCK_MONOTONIC_RAW:						      \
@@ -94,7 +100,7 @@ maybe_syscall_gettime (clockid_t clock_id, struct timespec *tp)
 	__set_errno (retval);						      \
 	retval = -1;							      \
       }									      \
-    break;
+    break
 #endif
 
 #ifdef __NR_clock_gettime
@@ -104,7 +110,9 @@ maybe_syscall_gettime (clockid_t clock_id, struct timespec *tp)
 
 # if __ASSUME_POSIX_CPU_TIMERS > 0
 
-#  define SYSDEP_GETTIME_CPU SYSCALL_GETTIME
+#  define SYSDEP_GETTIME_CPU(clock_id, tp) \
+  retval = SYSCALL_GETTIME (clock_id, tp); \
+  break
 #  define SYSDEP_GETTIME_CPUTIME	/* Default catches them too.  */
 
 # else
@@ -119,7 +127,7 @@ maybe_syscall_gettime_cpu (clockid_t clock_id, struct timespec *tp)
   if (!__libc_missing_posix_cpu_timers)
     {
       INTERNAL_SYSCALL_DECL (err);
-      int r = INTERNAL_VSYSCALL (clock_gettime, err, 2, clock_id, tp);
+      int r = INTERNAL_GETTIME (clock_id, tp);
       if (!INTERNAL_SYSCALL_ERROR_P (r, err))
 	return 0;
 
@@ -158,7 +166,7 @@ maybe_syscall_gettime_cpu (clockid_t clock_id, struct timespec *tp)
   return e;
 }
 
-#  define SYSDEP_GETTIME_CPU						      \
+#  define SYSDEP_GETTIME_CPU(clock_id, tp) \
   retval = maybe_syscall_gettime_cpu (clock_id, tp);			      \
   if (retval == 0)							      \
     break;								      \
@@ -193,7 +201,7 @@ maybe_syscall_gettime_cputime (clockid_t clock_id, struct timespec *tp)
 	  break;							      \
 	}								      \
       retval = hp_timing_gettime (clock_id, tp);			      \
-      break;
+      break
 #  if !HP_TIMING_AVAIL
 #   define hp_timing_gettime(clock_id, tp) (__set_errno (EINVAL), -1)
 #  endif

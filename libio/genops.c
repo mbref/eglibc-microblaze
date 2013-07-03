@@ -1,4 +1,4 @@
-/* Copyright (C) 1993,1995,1997-2002, 2003, 2004, 2006, 2007
+/* Copyright (C) 1993,1995,1997-2002, 2003, 2004, 2006, 2007, 2011
    Free Software Foundation, Inc.
    This file is part of the GNU C Library.
 
@@ -826,7 +826,7 @@ _IO_flush_all_lockp (int do_lock)
   int last_stamp;
 
 #ifdef _IO_MTSAFE_IO
-  _IO_cleanup_region_start_noarg (flush_cleanup);
+  __libc_cleanup_region_start (do_lock, flush_cleanup, 0);
   if (do_lock)
     _IO_lock_lock (list_all_lock);
 #endif
@@ -866,7 +866,7 @@ _IO_flush_all_lockp (int do_lock)
 #ifdef _IO_MTSAFE_IO
   if (do_lock)
     _IO_lock_unlock (list_all_lock);
-  _IO_cleanup_region_end (0);
+  __libc_cleanup_region_end (0);
 #endif
 
   return result;
@@ -959,7 +959,7 @@ _IO_unbuffer_write (void)
 	  int cnt;
 #define MAXTRIES 2
 	  for (cnt = 0; cnt < MAXTRIES; ++cnt)
-	    if (_IO_lock_trylock (*fp->_lock) == 0)
+	    if (fp->_lock == NULL || _IO_lock_trylock (*fp->_lock) == 0)
 	      break;
 	    else
 	      /* Give the other thread time to finish up its use of the
@@ -978,7 +978,7 @@ _IO_unbuffer_write (void)
 
 	  _IO_SETBUF (fp, NULL, 0);
 
-	  if (cnt < MAXTRIES)
+	  if (cnt < MAXTRIES && fp->_lock != NULL)
 	    _IO_lock_unlock (*fp->_lock);
 	}
 

@@ -7,14 +7,12 @@
 
 #include <machine/asm.h>
 
-RCSID("$NetBSD: e_log10.S,v 1.4 1995/05/08 23:49:24 jtc Exp $")
-
 #ifdef __ELF__
-	.section .rodata
+	.section .rodata.cst8,"aM",@progbits,8
 #else
 	.text
 #endif
-	.align ALIGNARG(4)
+	.p2align 3
 	ASM_TYPE_DIRECTIVE(one,@object)
 one:	.double 1.0
 	ASM_SIZE_DIRECTIVE(one)
@@ -64,3 +62,4 @@ ENTRY(__ieee754_log10)
 	fstp	%st(1)
 	ret
 END (__ieee754_log10)
+strong_alias (__ieee754_log10, __log10_finite)

@@ -13,10 +13,6 @@
    for performance improvement on pipelined processors.
 */
 
-#if defined(LIBM_SCCS) && !defined(lint)
-static char rcsid[] = "$NetBSD: s_log1p.c,v 1.8 1995/05/10 20:47:46 jtc Exp $";
-#endif
-
 /* double log1p(double x)
  *
  * Method :
@@ -85,11 +81,7 @@ static char rcsid[] = "$NetBSD: s_log1p.c,v 1.8 1995/05/10 20:47:46 jtc Exp $";
 #include "math.h"
 #include "math_private.h"
 
-#ifdef __STDC__
 static const double
-#else
-static double
-#endif
 ln2_hi  =  6.93147180369123816490e-01,	/* 3fe62e42 fee00000 */
 ln2_lo  =  1.90821492927058770002e-10,	/* 3dea39ef 35793c76 */
 two54   =  1.80143985094819840000e+16,  /* 43500000 00000000 */
@@ -101,18 +93,10 @@ Lp[] = {0.0, 6.666666666666735130e-01,  /* 3FE55555 55555593 */
  1.531383769920937332e-01,  /* 3FC39A09 D078C69F */
  1.479819860511658591e-01};  /* 3FC2F112 DF3E5244 */
 
-#ifdef __STDC__
 static const double zero = 0.0;
-#else
-static double zero = 0.0;
-#endif
 
-#ifdef __STDC__
-	double __log1p(double x)
-#else
-	double __log1p(x)
-	double x;
-#endif
+double
+__log1p(double x)
 {
 	double hfsq,f,c,s,z,R,u,z2,z4,z6,R1,R2,R3,R4;
 	int32_t k,hx,hu,ax;
@@ -127,8 +111,8 @@ static double zero = 0.0;
 		else return (x-x)/(x-x);	/* log1p(x<-1)=NaN */
 	    }
 	    if(ax<0x3e200000) {			/* |x| < 2**-29 */
-		if(two54+x>zero			/* raise inexact */
-	            &&ax<0x3c900000) 		/* |x| < 2**-54 */
+		math_force_eval(two54+x);	/* raise inexact */
+		if (ax<0x3c900000)		/* |x| < 2**-54 */
 		    return x;
 		else
 		    return x - x*x*0.5;

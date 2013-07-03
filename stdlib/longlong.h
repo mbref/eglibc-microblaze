@@ -1,6 +1,6 @@
 /* longlong.h -- definitions for mixed size 32/64 bit arithmetic.
    Copyright (C) 1991, 1992, 1994, 1995, 1996, 1997, 1998, 1999, 2000,
-   2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
+   2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011
    Free Software Foundation, Inc.
 
    This file is part of the GNU C Library.
@@ -343,23 +343,24 @@ UDItype __umulsidi3 (USItype, USItype);
 #else
 #define smul_ppmm(xh, xl, m0, m1) \
   do {                                                                  \
-    register SItype r0 __asm__ ("0");                                   \
-    register SItype r1 __asm__ ("1") = m0;                              \
+    register SItype __r0 __asm__ ("0");					\
+    register SItype __r1 __asm__ ("1") = (m0);				\
                                                                         \
     __asm__ ("mr\t%%r0,%3"                                              \
-             : "=r" (r0), "=r" (r1)                                     \
-             : "r"  (r1),  "r" (m1));                                   \
-    (xh) = r0; (xl) = r1;                                               \
+	     : "=r" (__r0), "=r" (__r1)					\
+	     : "r"  (__r1),  "r" (m1));					\
+    (xh) = __r0; (xl) = __r1;						\
   } while (0)
+
 #define sdiv_qrnnd(q, r, n1, n0, d) \
   do {									\
-    register SItype r0 __asm__ ("0") = n0;                              \
-    register SItype r1 __asm__ ("1") = n1;                              \
+    register SItype __r0 __asm__ ("0") = (n1);				\
+    register SItype __r1 __asm__ ("1") = (n0);				\
                                                                         \
-    __asm__ ("dr\t%%r0,%3"						\
-	     : "=r" (r0), "=r" (r1)		         		\
-	     : "r" (r0), "r" (r1), "r" (d));				\
-    (q) = r0; (r) = r1;                  				\
+    __asm__ ("dr\t%%r0,%4"                                              \
+	     : "=r" (__r0), "=r" (__r1)					\
+	     : "r" (__r0), "r" (__r1), "r" (d));			\
+    (q) = __r1; (r) = __r0;						\
   } while (0)
 #endif /* __zarch__ */
 #endif

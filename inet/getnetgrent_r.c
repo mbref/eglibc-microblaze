@@ -1,4 +1,4 @@
-/* Copyright (C) 1996, 1997, 1998, 1999, 2002, 2004, 2005, 2007
+/* Copyright (C) 1996,1997,1998,1999,2002,2004,2005,2007,2011
    Free Software Foundation, Inc.
    This file is part of the GNU C Library.
 
@@ -28,6 +28,7 @@
 #include "netgroup.h"
 #include "nsswitch.h"
 #include <sysdep.h>
+#include <nscd/nscd_proto.h>
 
 
 /* Protect above variable against multiple uses at the same time.  */
@@ -101,7 +102,7 @@ endnetgrent_hook (struct __netgrent *datap)
 {
   enum nss_status (*endfct) (struct __netgrent *);
 
-  if (datap->nip == NULL)
+  if (datap->nip == NULL || datap->nip == (service_user *) -1l)
     return;
 
   endfct = __nss_lookup_function (datap->nip, "endnetgrent");
@@ -133,7 +134,7 @@ __internal_setnetgrent_reuse (const char *group, struct __netgrent *datap,
       assert (datap->data == NULL);
 
       /* Ignore status, we force check in `__nss_next2'.  */
-      status = (*fct.f) (group, datap);
+      status = DL_CALL_FCT (*fct.f, (group, datap));
 
       service_user *old_nip = datap->nip;
       no_more = __nss_next2 (&datap->nip, "setnetgrent", NULL, &fct.ptr,
@@ -145,7 +146,7 @@ __internal_setnetgrent_reuse (const char *group, struct __netgrent *datap,
 
 	  endfct = __nss_lookup_function (old_nip, "endnetgrent");
 	  if (endfct != NULL)
-	    (void) (*endfct) (datap);
+	    (void) DL_CALL_FCT (*endfct, (datap));
 	}
     }
 
@@ -189,8 +190,21 @@ setnetgrent (const char *group)
 
   __libc_lock_lock (lock);
 
+  if (__nss_not_use_nscd_netgroup > 0
+      && ++__nss_not_use_nscd_netgroup > NSS_NSCD_RETRY)
+    __nss_not_use_nscd_netgroup = 0;
+
+  if (!__nss_not_use_nscd_netgroup
+      && !__nss_database_custom[NSS_DBSIDX_netgroup])
+    {
+      result = __nscd_setnetgrent (group, &dataset);
+      if (result >= 0)
+	goto out;
+    }
+
   result = internal_setnetgrent (group, &dataset);
 
+ out:
   __libc_lock_unlock (lock);
 
   return result;
@@ -226,6 +240,26 @@ int internal_getnetgrent_r (char **hostp, char **userp, char **domainp,
 			    char *buffer, size_t buflen, int *errnop);
 libc_hidden_proto (internal_getnetgrent_r)
 
+
+static enum nss_status
+nscd_getnetgrent (struct __netgrent *datap, char *buffer, size_t buflen,
+		  int *errnop)
+{
+  if (datap->cursor >= datap->data + datap->data_size)
+    return NSS_STATUS_UNAVAIL;
+
+  datap->type = triple_val;
+  datap->val.triple.host = datap->cursor;
+  datap->cursor = (char *) __rawmemchr (datap->cursor, '\0') + 1;
+  datap->val.triple.user = datap->cursor;
+  datap->cursor = (char *) __rawmemchr (datap->cursor, '\0') + 1;
+  datap->val.triple.domain = datap->cursor;
+  datap->cursor = (char *) __rawmemchr (datap->cursor, '\0') + 1;
+
+  return NSS_STATUS_SUCCESS;
+}
+
+
 int
 internal_getnetgrent_r (char **hostp, char **userp, char **domainp,
 			  struct __netgrent *datap,
@@ -239,12 +273,21 @@ internal_getnetgrent_r (char **hostp, char **userp, char **domainp,
   /* Run through available functions, starting with the same function last
      run.  We will repeat each function as long as it succeeds, and then go
      on to the next service action.  */
-  int no_more = (datap->nip == NULL
-		 || (fct = __nss_lookup_function (datap->nip, "getnetgrent_r"))
-		    == NULL);
+  int no_more = datap->nip == NULL;
+  if (! no_more)
+    {
+      if (datap->nip == (service_user *) -1l)
+	fct = nscd_getnetgrent;
+      else
+	{
+	  fct = __nss_lookup_function (datap->nip, "getnetgrent_r");
+	  no_more = fct == NULL;
+	}
+    }
+
   while (! no_more)
     {
-      status = (*fct) (datap, buffer, buflen, &errno);
+      status = DL_CALL_FCT (*fct, (datap, buffer, buflen, &errno));
 
       if (status == NSS_STATUS_RETURN)
 	{
@@ -279,6 +322,11 @@ internal_getnetgrent_r (char **hostp, char **userp, char **domainp,
 	       namep = namep->next)
 	    if (strcmp (datap->val.group, namep->name) == 0)
 	      break;
+	  if (namep == NULL)
+	    for (namep = datap->needed_groups; namep != NULL;
+		 namep = namep->next)
+	      if (strcmp (datap->val.group, namep->name) == 0)
+		break;
 	  if (namep != NULL)
 	    /* Really ignore.  */
 	    continue;
@@ -337,9 +385,21 @@ int
 innetgr (const char *netgroup, const char *host, const char *user,
 	 const char *domain)
 {
+  if (__nss_not_use_nscd_netgroup > 0
+      && ++__nss_not_use_nscd_netgroup > NSS_NSCD_RETRY)
+    __nss_not_use_nscd_netgroup = 0;
+
+  if (!__nss_not_use_nscd_netgroup
+      && !__nss_database_custom[NSS_DBSIDX_netgroup])
+    {
+      int result = __nscd_innetgr (netgroup, host, user, domain);
+      if (result >= 0)
+	return result;
+    }
+
   union
   {
-    int (*f) (const char *, struct __netgrent *);
+    enum nss_status (*f) (const char *, struct __netgrent *);
     void *ptr;
   } setfct;
   void (*endfct) (struct __netgrent *);
@@ -347,7 +407,6 @@ innetgr (const char *netgroup, const char *host, const char *user,
   struct __netgrent entry;
   int result = 0;
   const char *current_group = netgroup;
-  int real_entry = 0;
 
   memset (&entry, '\0', sizeof (entry));
 
@@ -363,7 +422,8 @@ innetgr (const char *netgroup, const char *host, const char *user,
 	  assert (entry.data == NULL);
 
 	  /* Open netgroup.  */
-	  enum nss_status status = (*setfct.f) (current_group, &entry);
+	  enum nss_status status = DL_CALL_FCT (*setfct.f,
+						(current_group, &entry));
 
 	  if (status == NSS_STATUS_SUCCESS
 	      && (getfct = __nss_lookup_function (entry.nip, "getnetgrent_r"))
@@ -371,7 +431,8 @@ innetgr (const char *netgroup, const char *host, const char *user,
 	    {
 	      char buffer[1024];
 
-	      while ((*getfct) (&entry, buffer, sizeof buffer, &errno)
+	      while (DL_CALL_FCT (*getfct,
+				  (&entry, buffer, sizeof buffer, &errno))
 		     == NSS_STATUS_SUCCESS)
 		{
 		  if (entry.type == group_val)
@@ -383,6 +444,11 @@ innetgr (const char *netgroup, const char *host, const char *user,
 			   namep = namep->next)
 			if (strcmp (entry.val.group, namep->name) == 0)
 			  break;
+		      if (namep == NULL)
+			for (namep = entry.needed_groups; namep != NULL;
+			     namep = namep->next)
+			  if (strcmp (entry.val.group, namep->name) == 0)
+			    break;
 		      if (namep == NULL
 			  && strcmp (netgroup, entry.val.group) != 0)
 			{
@@ -404,8 +470,6 @@ innetgr (const char *netgroup, const char *host, const char *user,
 		    }
 		  else
 		    {
-		      real_entry = 1;
-
 		      if ((entry.val.triple.host == NULL || host == NULL
 			   || __strcasecmp (entry.val.triple.host, host) == 0)
 			  && (entry.val.triple.user == NULL || user == NULL
@@ -428,7 +492,7 @@ innetgr (const char *netgroup, const char *host, const char *user,
 	  /* Free all resources of the service.  */
 	  endfct = __nss_lookup_function (entry.nip, "endnetgrent");
 	  if (endfct != NULL)
-	    (*endfct) (&entry);
+	    DL_CALL_FCT (*endfct, (&entry));
 
 	  if (result != 0)
 	    break;
@@ -444,7 +508,7 @@ innetgr (const char *netgroup, const char *host, const char *user,
 	  entry.needed_groups = tmp->next;
 	  tmp->next = entry.known_groups;
 	  entry.known_groups = tmp;
-	  current_group = entry.known_groups->name;
+	  current_group = tmp->name;
 	  continue;
 	}
 

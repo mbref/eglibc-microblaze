@@ -108,3 +108,4 @@ p4 = 4.216630880e-2f;
 	}
 	if(hx>0) return t; else return -t;
 }
+strong_alias (__ieee754_asinf, __asinf_finite)

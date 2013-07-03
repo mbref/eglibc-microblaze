@@ -1,5 +1,5 @@
 /* Mail alias file parser in nss_files module.
-   Copyright (C) 1996,97,98,99,2002,2006,2007 Free Software Foundation, Inc.
+   Copyright (C) 1996-1999,2002,2006,2007,2011 Free Software Foundation, Inc.
    This file is part of the GNU C Library.
    Contributed by Ulrich Drepper <drepper@cygnus.com>, 1996.
 
@@ -48,7 +48,7 @@ internal_setent (void)
 
   if (stream == NULL)
     {
-      stream = fopen ("/etc/aliases", "re");
+      stream = fopen ("/etc/aliases", "rce");
 
       if (stream == NULL)
 	status = errno == EAGAIN ? NSS_STATUS_TRYAGAIN : NSS_STATUS_UNAVAIL;
@@ -258,13 +258,13 @@ get_next_alias (const char *match, struct aliasent *result,
 
 		      first_unused = cp;
 
-		      listfile = fopen (&cp[9], "r");
+		      listfile = fopen (&cp[9], "rce");
 		      /* If the file does not exist we simply ignore
 			 the statement.  */
 		      if (listfile != NULL
 			  && (old_line = strdup (line)) != NULL)
 			{
-			  while (! feof (listfile))
+			  while (! feof_unlocked (listfile))
 			    {
 			      first_unused[room_left - 1] = '\xff';
 			      line = fgets_unlocked (first_unused, room_left,
@@ -335,7 +335,7 @@ get_next_alias (const char *match, struct aliasent *result,
 		     just read character.  */
 		  int ch;
 
-		  ch = fgetc (stream);
+		  ch = fgetc_unlocked (stream);
 		  if (ch == EOF || ch == '\n' || !isspace (ch))
 		    {
 		      size_t cnt;

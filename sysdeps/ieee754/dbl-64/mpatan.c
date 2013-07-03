@@ -1,8 +1,7 @@
-
 /*
  * IBM Accurate Mathematical Library
  * written by International Business Machines Corp.
- * Copyright (C) 2001 Free Software Foundation
+ * Copyright (C) 2001, 2011 Free Software Foundation
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
@@ -34,10 +33,18 @@
 
 #include "endian.h"
 #include "mpa.h"
+
+#ifndef SECTION
+# define SECTION
+#endif
+
+#include "mpatan.h"
+
 void __mpsqrt(mp_no *, mp_no *, int);
 
-void __mpatan(mp_no *x, mp_no *y, int p) {
-#include "mpatan.h"
+void
+SECTION
+__mpatan(mp_no *x, mp_no *y, int p) {
 
   int i,m,n;
   double dx;
@@ -60,7 +67,7 @@ void __mpatan(mp_no *x, mp_no *y, int p) {
     else {
       __mp_dbl(x,&dx,p);  dx=ABS(dx);
       for (m=6; m>0; m--)
-        {if (dx>xm[m].d) break;}
+	{if (dx>__atan_xm[m].d) break;}
     }
     mpone.e    = mptwo.e    = mptwoim1.e = 1;
     mpone.d[0] = mpone.d[1] = mptwo.d[0] = mptwoim1.d[0] = ONE;
@@ -83,7 +90,7 @@ void __mpatan(mp_no *x, mp_no *y, int p) {
     }
 
                     /* Evaluate a truncated power series for Atan(s) */
-    n=np[p];    mptwoim1.d[1] = twonm1[p].d;
+    n=__atan_np[p];    mptwoim1.d[1] = __atan_twonm1[p].d;
     __dvd(&mpsm,&mptwoim1,&mpt,p);
     for (i=n-1; i>1; i--) {
       mptwoim1.d[1] -= TWO;
@@ -95,7 +102,7 @@ void __mpatan(mp_no *x, mp_no *y, int p) {
     __sub(&mps,&mpt1,&mpt,p);
 
                           /* Compute Atan(x) */
-    mptwoim1.d[1] = twom[m].d;
+    mptwoim1.d[1] = __atan_twom[m].d;
     __mul(&mptwoim1,&mpt,y,p);
 
   return;

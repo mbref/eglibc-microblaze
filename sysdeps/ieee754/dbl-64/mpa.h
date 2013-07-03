@@ -1,8 +1,7 @@
-
 /*
  * IBM Accurate Mathematical Library
  * Written by International Business Machines Corp.
- * Copyright (C) 2001 Free Software Foundation, Inc.
+ * Copyright (C) 2001, 2011 Free Software Foundation, Inc.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
@@ -66,15 +65,15 @@ typedef union { int i[2]; double d; } number;
 #define ABS(x)   ((x) <  0  ? -(x) : (x))
 
 int __acr(const mp_no *, const mp_no *, int);
-int  __cr(const mp_no *, const mp_no *, int);
+// int  __cr(const mp_no *, const mp_no *, int);
 void __cpy(const mp_no *, mp_no *, int);
-void __cpymn(const mp_no *, int, mp_no *, int);
+// void __cpymn(const mp_no *, int, mp_no *, int);
 void __mp_dbl(const mp_no *, double *, int);
 void __dbl_mp(double, mp_no *, int);
 void __add(const mp_no *, const mp_no *, mp_no *, int);
 void __sub(const mp_no *, const mp_no *, mp_no *, int);
 void __mul(const mp_no *, const mp_no *, mp_no *, int);
-void __inv(const mp_no *, mp_no *, int);
+// void __inv(const mp_no *, mp_no *, int);
 void __dvd(const mp_no *, const mp_no *, mp_no *, int);
 
 extern void __mpatan (mp_no *, mp_no *, int);

@@ -22,18 +22,10 @@
 #include "math_private.h"
 #include <ieee754.h>
 
-#ifdef __STDC__
 static const long double one = 1.0, Zero[] = {0.0, -0.0,};
-#else
-static long double one = 1.0, Zero[] = {0.0, -0.0,};
-#endif
 
-#ifdef __STDC__
-	long double __ieee754_fmodl(long double x, long double y)
-#else
-	long double __ieee754_fmodl(x,y)
-	long double x,y;
-#endif
+long double
+__ieee754_fmodl (long double x, long double y)
 {
 	int64_t n,hx,hy,hz,ix,iy,sx,i;
 	u_int64_t lx,ly,lz;
@@ -143,3 +135,4 @@ static long double one = 1.0, Zero[] = {0.0, -0.0,};
 	}
 	return x;		/* exact output */
 }
+strong_alias (__ieee754_fmodl, __fmodl_finite)

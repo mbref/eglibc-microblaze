@@ -1,7 +1,7 @@
 /*
  * IBM Accurate Mathematical Library
  * written by International Business Machines Corp.
- * Copyright (C) 2001, 2005 Free Software Foundation
+ * Copyright (C) 2001, 2005, 2011 Free Software Foundation
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
@@ -37,10 +37,12 @@
 
 #include "endian.h"
 #include "mydefs.h"
-#include "dla.h"
+#include <dla.h>
 #include "math_private.h"
 
-double __ieee754_sqrt(double x);
+#ifndef SECTION
+# define SECTION
+#endif
 
 static const int4 tab54[32] = {
    262143, 11585, 1782, 511, 210, 107, 63, 42,
@@ -49,10 +51,15 @@ static const int4 tab54[32] = {
         3,     3,    3,   3,   3,   3,  3,  3 };
 
 
-double __halfulp(double x, double y)
+double
+SECTION
+__halfulp(double x, double y)
 {
   mynumber v;
-  double z,u,uu,j1,j2,j3,j4,j5;
+  double z,u,uu;
+#ifndef DLA_FMS
+  double j1,j2,j3,j4,j5;
+#endif
   int4 k,l,m,n;
   if (y <= 0) {               /*if power is negative or zero */
     v.x = y;

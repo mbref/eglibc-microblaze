@@ -13,18 +13,10 @@
  * ====================================================
  */
 
-#if defined(LIBM_SCCS) && !defined(lint)
-static char rcsid[] = "$NetBSD: e_lgammaf_r.c,v 1.3 1995/05/10 20:45:47 jtc Exp $";
-#endif
-
 #include "math.h"
 #include "math_private.h"
 
-#ifdef __STDC__
 static const float
-#else
-static float
-#endif
 two23=  8.3886080000e+06, /* 0x4b000000 */
 half=  5.0000000000e-01, /* 0x3f000000 */
 one =  1.0000000000e+00, /* 0x3f800000 */
@@ -92,18 +84,10 @@ w4  = -5.9518753551e-04, /* 0xba1c065c */
 w5  =  8.3633989561e-04, /* 0x3a5b3dd2 */
 w6  = -1.6309292987e-03; /* 0xbad5c4e8 */
 
-#ifdef __STDC__
 static const float zero=  0.0000000000e+00;
-#else
-static float zero=  0.0000000000e+00;
-#endif
 
-#ifdef __STDC__
-	static float sin_pif(float x)
-#else
-	static float sin_pif(x)
-	float x;
-#endif
+static float
+sin_pif(float x)
 {
 	float y,z;
 	int n,ix;
@@ -148,12 +132,8 @@ static float zero=  0.0000000000e+00;
 }
 
 
-#ifdef __STDC__
-	float __ieee754_lgammaf_r(float x, int *signgamp)
-#else
-	float __ieee754_lgammaf_r(x,signgamp)
-	float x; int *signgamp;
-#endif
+float
+__ieee754_lgammaf_r(float x, int *signgamp)
 {
 	float t,y,z,nadj,p,p1,p2,p3,q,r,w;
 	int i,hx,ix;
@@ -163,14 +143,15 @@ static float zero=  0.0000000000e+00;
     /* purge off +-inf, NaN, +-0, and negative arguments */
 	*signgamp = 1;
 	ix = hx&0x7fffffff;
-	if(ix>=0x7f800000) return x*x;
-	if(ix==0)
+	if(__builtin_expect(ix>=0x7f800000, 0)) return x*x;
+	if(__builtin_expect(ix==0, 0))
 	  {
 	    if (hx < 0)
 	      *signgamp = -1;
 	    return one/fabsf(x);
 	  }
-	if(ix<0x1c800000) {	/* |x|<2**-70, return -log(|x|) */
+	if(__builtin_expect(ix<0x1c800000, 0)) {
+	    /* |x|<2**-70, return -log(|x|) */
 	    if(hx<0) {
 	        *signgamp = -1;
 	        return -__ieee754_logf(-x);
@@ -251,3 +232,4 @@ static float zero=  0.0000000000e+00;
 	if(hx<0) r = nadj - r;
 	return r;
 }
+strong_alias (__ieee754_lgammaf_r, __lgammaf_r_finite)

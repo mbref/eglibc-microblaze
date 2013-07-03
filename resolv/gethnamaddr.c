@@ -787,7 +787,7 @@ _sethtent(f)
 	int f;
 {
 	if (!hostf)
-		hostf = fopen(_PATH_HOSTS, "r" );
+		hostf = fopen(_PATH_HOSTS, "rce" );
 	else
 		rewind(hostf);
 	stayopen = f;
@@ -810,7 +810,7 @@ _gethtent()
 	register char *cp, **q;
 	int af, len;
 
-	if (!hostf && !(hostf = fopen(_PATH_HOSTS, "r" ))) {
+	if (!hostf && !(hostf = fopen(_PATH_HOSTS, "rce" ))) {
 		__set_h_errno (NETDB_INTERNAL);
 		return (NULL);
 	}

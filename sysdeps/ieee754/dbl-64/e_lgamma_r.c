@@ -10,10 +10,6 @@
  * ====================================================
  */
 
-#if defined(LIBM_SCCS) && !defined(lint)
-static char rcsid[] = "$NetBSD: e_lgamma_r.c,v 1.7 1995/05/10 20:45:42 jtc Exp $";
-#endif
-
 /* __ieee754_lgamma_r(x, signgamp)
  * Reentrant version of the logarithm of the Gamma function
  * with user provide pointer for the sign of Gamma(x).
@@ -84,11 +80,7 @@ static char rcsid[] = "$NetBSD: e_lgamma_r.c,v 1.7 1995/05/10 20:45:42 jtc Exp $
 #include "math.h"
 #include "math_private.h"
 
-#ifdef __STDC__
 static const double
-#else
-static double
-#endif
 two52=  4.50359962737049600000e+15, /* 0x43300000, 0x00000000 */
 half=  5.00000000000000000000e-01, /* 0x3FE00000, 0x00000000 */
 one =  1.00000000000000000000e+00, /* 0x3FF00000, 0x00000000 */
@@ -156,18 +148,10 @@ w4  = -5.95187557450339963135e-04, /* 0xBF4380CB, 0x8C0FE741 */
 w5  =  8.36339918996282139126e-04, /* 0x3F4B67BA, 0x4CDAD5D1 */
 w6  = -1.63092934096575273989e-03; /* 0xBF5AB89D, 0x0B9E43E4 */
 
-#ifdef __STDC__
 static const double zero=  0.00000000000000000000e+00;
-#else
-static double zero=  0.00000000000000000000e+00;
-#endif
 
-#ifdef __STDC__
-	static double sin_pi(double x)
-#else
-	static double sin_pi(x)
-	double x;
-#endif
+static double
+sin_pi(double x)
 {
 	double y,z;
 	int n,ix;
@@ -212,12 +196,8 @@ static double zero=  0.00000000000000000000e+00;
 }
 
 
-#ifdef __STDC__
-	double __ieee754_lgamma_r(double x, int *signgamp)
-#else
-	double __ieee754_lgamma_r(x,signgamp)
-	double x; int *signgamp;
-#endif
+double
+__ieee754_lgamma_r(double x, int *signgamp)
 {
 	double t,y,z,nadj,p,p1,p2,p3,q,r,w;
 	int i,hx,lx,ix;
@@ -227,21 +207,23 @@ static double zero=  0.00000000000000000000e+00;
     /* purge off +-inf, NaN, +-0, and negative arguments */
 	*signgamp = 1;
 	ix = hx&0x7fffffff;
-	if(ix>=0x7ff00000) return x*x;
-	if((ix|lx)==0)
+	if(__builtin_expect(ix>=0x7ff00000, 0)) return x*x;
+	if(__builtin_expect((ix|lx)==0, 0))
 	  {
 	    if (hx < 0)
 	      *signgamp = -1;
 	    return one/fabs(x);
 	  }
-	if(ix<0x3b900000) {	/* |x|<2**-70, return -log(|x|) */
+	if(__builtin_expect(ix<0x3b900000, 0)) {
+	    /* |x|<2**-70, return -log(|x|) */
 	    if(hx<0) {
 	        *signgamp = -1;
 	        return -__ieee754_log(-x);
 	    } else return -__ieee754_log(x);
 	}
 	if(hx<0) {
-	    if(ix>=0x43300000) 	/* |x|>=2**52, must be -integer */
+	    if(__builtin_expect(ix>=0x43300000, 0))
+		/* |x|>=2**52, must be -integer */
 		return x/zero;
 	    t = sin_pi(x);
 	    if(t==zero) return one/fabsf(t); /* -integer */
@@ -315,3 +297,4 @@ static double zero=  0.00000000000000000000e+00;
 	if(hx<0) r = nadj - r;
 	return r;
 }
+strong_alias (__ieee754_lgamma_r, __lgamma_r_finite)
