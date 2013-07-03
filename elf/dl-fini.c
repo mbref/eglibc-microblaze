@@ -30,8 +30,7 @@ typedef void (*fini_t) (void);
 
 void
 internal_function
-_dl_sort_fini (struct link_map *l, struct link_map **maps, size_t nmaps,
-	       char *used, Lmid_t ns)
+_dl_sort_fini (struct link_map **maps, size_t nmaps, char *used, Lmid_t ns)
 {
   /* A list of one element need not be sorted.  */
   if (nmaps == 1)
@@ -45,7 +44,7 @@ _dl_sort_fini (struct link_map *l, struct link_map **maps, size_t nmaps,
   while (1)
     {
       /* Keep track of which object we looked at this round.  */
-      seen[i] += seen[i] < 2;
+      ++seen[i];
       struct link_map *thisp = maps[i];
 
       /* Do not handle ld.so in secondary namespaces and object which
@@ -101,7 +100,17 @@ _dl_sort_fini (struct link_map *l, struct link_map **maps, size_t nmaps,
 	      /* Look through the relocation dependencies of the object.  */
 	      while (m-- > 0)
 		if (__builtin_expect (relmaps[m] == thisp, 0))
-		  goto move;
+		  {
+		    /* If a cycle exists with a link time dependency,
+		       preserve the latter.  */
+		    struct link_map **runp = thisp->l_initfini;
+		    if (runp != NULL)
+		      while (*runp != NULL)
+			if (__builtin_expect (*runp++ == maps[k], 0))
+			  goto ignore;
+		    goto move;
+		  }
+	    ignore:;
 	    }
 
 	  --k;
@@ -200,7 +209,7 @@ _dl_fini (void)
       nmaps = i;
 
       /* Now we have to do the sorting.  */
-      _dl_sort_fini (GL(dl_ns)[ns]._ns_loaded, maps, nmaps, NULL, ns);
+      _dl_sort_fini (maps, nmaps, NULL, ns);
 
       /* We do not rely on the linked list of loaded object anymore from
 	 this point on.  We have our own list here (maps).  The various

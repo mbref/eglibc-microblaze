@@ -356,6 +356,7 @@ ___printf_fp (FILE *fp,
       fpnum.ldbl = *(const long double *) args[0];
 
       /* Check for special values: not a number or infinity.  */
+      int res;
       if (__isnanl (fpnum.ldbl))
 	{
 	  union ieee854_long_double u = { .d = fpnum.ldbl };
@@ -371,9 +372,9 @@ ___printf_fp (FILE *fp,
 		wspecial = L"nan";
 	      }
 	}
-      else if (__isinfl (fpnum.ldbl))
+      else if ((res = __isinfl (fpnum.ldbl)))
 	{
-	  is_neg = fpnum.ldbl < 0;
+	  is_neg = res < 0;
 	  if (isupper (info->spec))
 	    {
 	      special = "INF";
@@ -401,6 +402,7 @@ ___printf_fp (FILE *fp,
       fpnum.dbl = *(const double *) args[0];
 
       /* Check for special values: not a number or infinity.  */
+      int res;
       if (__isnan (fpnum.dbl))
 	{
 	  union ieee754_double u = { .d = fpnum.dbl };
@@ -416,9 +418,9 @@ ___printf_fp (FILE *fp,
 	      wspecial = L"nan";
 	    }
 	}
-      else if (__isinf (fpnum.dbl))
+      else if ((res = __isinf (fpnum.dbl)))
 	{
-	  is_neg = fpnum.dbl < 0;
+	  is_neg = res < 0;
 	  if (isupper (info->spec))
 	    {
 	      special = "INF";
@@ -662,7 +664,6 @@ ___printf_fp (FILE *fp,
       int exp10 = 0;
       int explog = LDBL_MAX_10_EXP_LOG;
       const struct mp_power *powers = &_fpioconst_pow10[explog + 1];
-      mp_size_t used_limbs = fracsize - 1;
 
       /* Now shift the input value to its right place.	*/
       cy = __mpn_lshift (frac, fp_input, fracsize, to_shift);
@@ -784,7 +785,6 @@ ___printf_fp (FILE *fp,
 			  fracsize = tmpsize - (i - 1);
 			}
 		    }
-		  used_limbs = fracsize - 1;
 		}
 	    }
 	  --explog;

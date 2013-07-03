@@ -102,15 +102,21 @@ cache_addserv (struct database_dyn *db, int fd, request_header *req,
 	{
 	  /* We have no data.  This means we send the standard reply for this
 	     case.  */
-	  total = sizeof (notfound);
+	  written = total = sizeof (notfound);
 
-	  written = TEMP_FAILURE_RETRY (send (fd, &notfound, total,
-					      MSG_NOSIGNAL));
+	  if (fd != -1)
+	    written = TEMP_FAILURE_RETRY (send (fd, &notfound, total,
+						MSG_NOSIGNAL));
 
-	  dataset = mempool_alloc (db, sizeof (struct dataset) + req->key_len,
-				   1);
 	  /* If we cannot permanently store the result, so be it.  */
-	  if (dataset != NULL)
+	  if (__builtin_expect (db->negtimeout == 0, 0))
+	    {
+	      /* Mark the old entry as obsolete.  */
+	      if (dh != NULL)
+		dh->usable = false;
+	    }
+	  else if ((dataset = mempool_alloc (db, (sizeof (struct dataset)
+						  + req->key_len), 1)) != NULL)
 	    {
 	      dataset->head.allocsize = sizeof (struct dataset) + req->key_len;
 	      dataset->head.recsize = total;

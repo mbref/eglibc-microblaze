@@ -1,5 +1,5 @@
 /* Assembler macros for 64 bit S/390.
-   Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006, 2008
+   Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006, 2008, 2011
    Free Software Foundation, Inc.
    Contributed by Martin Schwidefsky (schwidefsky@de.ibm.com).
    This file is part of the GNU C Library.
@@ -62,7 +62,7 @@
    even if the call succeeded.	E.g., the `lseek' system call might return
    a large offset.  Therefore we must not anymore test for < 0, but test
    for a real error by making sure the value in gpr2 is a real error
-   number.  Linus said he will make sure the no syscall returns a value
+   number.  Linus said he will make sure that no syscall returns a value
    in -1 .. -4095 as a valid result so we can savely test with -4095.  */
 
 #undef PSEUDO
@@ -115,14 +115,13 @@
     lghi  %r2,-1;							      \
     br    %r14
 # elif defined _LIBC_REENTRANT
-#  if USE___THREAD
-#   ifndef NOT_IN_libc
-#    define SYSCALL_ERROR_ERRNO __libc_errno
-#   else
-#    define SYSCALL_ERROR_ERRNO errno
-#   endif
-#   define SYSCALL_ERROR_LABEL 0f
-#   define SYSCALL_ERROR_HANDLER \
+#  ifndef NOT_IN_libc
+#   define SYSCALL_ERROR_ERRNO __libc_errno
+#  else
+#   define SYSCALL_ERROR_ERRNO errno
+#  endif
+#  define SYSCALL_ERROR_LABEL 0f
+#  define SYSCALL_ERROR_HANDLER \
 0:  lcr   %r0,%r2;							      \
     larl  %r1,SYSCALL_ERROR_ERRNO@indntpoff;				      \
     lg    %r1,0(%r1);							      \
@@ -132,10 +131,6 @@
     st    %r0,0(%r1,%r2);						      \
     lghi   %r2,-1;							      \
     br    %r14
-#  else
-#   define SYSCALL_ERROR_LABEL syscall_error@plt
-#   define SYSCALL_ERROR_HANDLER
-#  endif
 # else
 #  define SYSCALL_ERROR_LABEL 0f
 #  define SYSCALL_ERROR_HANDLER \
@@ -319,8 +314,8 @@
     if (INTERNAL_SYSCALL_ERROR_P (_ret, ))				      \
       {									      \
       iserr:								      \
-        __set_errno (INTERNAL_SYSCALL_ERRNO (_ret, ));			      \
-        _ret = -1L;							      \
+	__set_errno (INTERNAL_SYSCALL_ERRNO (_ret, ));			      \
+	_ret = -1L;							      \
       }									      \
   out:									      \
     (int) _ret;								      \
@@ -370,12 +365,12 @@
     DECLARGS_##nr(args)							      \
     register long _ret asm("2");					      \
     asm volatile (							      \
-    "lgr 11,14\n\t"							      \
+    "lgr 10,14\n\t"                                                          \
     "basr 14,%1\n\t"							      \
-    "lgr 14,11\n\t"							      \
+    "lgr 14,10\n\t"                                                          \
     : "=d" (_ret)							      \
     : "a" (fn) ASMFMT_##nr						      \
-    : "cc", "memory", "0", "1", "11" CLOBBER_##nr);			      \
+    : "cc", "memory", "0", "1", "10" CLOBBER_##nr);                          \
     _ret; })
 
 /* Pointer mangling support.  */

@@ -60,7 +60,9 @@ static time_t (*const readdfcts[LASTREQ]) (struct database_dyn *,
   [GETAI] = readdhstai,
   [INITGROUPS] = readdinitgroups,
   [GETSERVBYNAME] = readdservbyname,
-  [GETSERVBYPORT] = readdservbyport
+  [GETSERVBYPORT] = readdservbyport,
+  [GETNETGRENT] = readdgetnetgrent,
+  [INNETGR] = readdinnetgr
 };
 
 
@@ -70,7 +72,7 @@ static time_t (*const readdfcts[LASTREQ]) (struct database_dyn *,
 
    This function must be called with the read-lock held.  */
 struct datahead *
-cache_search (request_type type, void *key, size_t len,
+cache_search (request_type type, const void *key, size_t len,
 	      struct database_dyn *table, uid_t owner)
 {
   unsigned long int hash = __nis_hash (key, len) % table->head->module;
@@ -264,28 +266,40 @@ prune_cache (struct database_dyn *table, time_t now, int fd)
 
   /* If we check for the modification of the underlying file we invalidate
      the entries also in this case.  */
-  if (table->inotify_descr < 0 && table->check_file && now != LONG_MAX)
+  if (table->check_file && now != LONG_MAX)
     {
-      struct stat64 st;
+      struct traced_file *runp = table->traced_files;
 
-      if (stat64 (table->filename, &st) < 0)
+      while (runp != NULL)
 	{
-	  char buf[128];
-	  /* We cannot stat() the file, disable file checking if the
-	     file does not exist.  */
-	  dbg_log (_("cannot stat() file `%s': %s"),
-		   table->filename, strerror_r (errno, buf, sizeof (buf)));
-	  if (errno == ENOENT)
-	    table->check_file = 0;
-	}
-      else
-	{
-	  if (st.st_mtime != table->file_mtime)
+#ifdef HAVE_INOTIFY
+	  if (runp->inotify_descr == -1)
+#endif
 	    {
-	      /* The file changed.  Invalidate all entries.  */
-	      now = LONG_MAX;
-	      table->file_mtime = st.st_mtime;
+	      struct stat64 st;
+
+	      if (stat64 (runp->fname, &st) < 0)
+		{
+		  char buf[128];
+		  /* We cannot stat() the file, disable file checking if the
+		     file does not exist.  */
+		  dbg_log (_("cannot stat() file `%s': %s"),
+			   runp->fname, strerror_r (errno, buf, sizeof (buf)));
+		  if (errno == ENOENT)
+		    table->check_file = 0;
+		}
+	      else
+		{
+		  if (st.st_mtime != table->file_mtime)
+		    {
+		      /* The file changed.  Invalidate all entries.  */
+		      now = LONG_MAX;
+		      table->file_mtime = st.st_mtime;
+		    }
+		}
 	    }
+
+	  runp = runp->next;
 	}
     }
 

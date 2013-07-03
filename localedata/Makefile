@@ -25,13 +25,9 @@ all: # Make this the default target; it will be defined in Rules.
 include ../option-groups.mak
 
 # List with all available character set descriptions.
-all-charmaps := $(filter-out $(addprefix charmaps/, CVS RCS SCCS %~), \
-					 $(wildcard charmaps/[A-I]*) \
-					 $(wildcard charmaps/[J-Z]*))
+all-charmaps := $(wildcard charmaps/[A-I]*) $(wildcard charmaps/[J-Z]*)
 
-# List with all available character set descriptions.
-all-locales := $(filter-out $(addprefix locales/, CVS RCS SCCS %~), \
-			    $(wildcard locales/*))
+all-locales := $(wildcard locales/*)
 
 # If the EGLIBC_LOCALES option group is not enabled, trim the
 # list of charmap and locale source files.
@@ -109,7 +105,7 @@ locale_test_suite := tst_iswalnum tst_iswalpha tst_iswcntrl            \
 tests-$(OPTION_EGLIBC_LOCALE_CODE) \
      += $(locale_test_suite) tst-digits tst-setlocale bug-iconv-trans \
 	tst-leaks tst-mbswcs6 tst-xlocale1 tst-xlocale2 bug-usesetlocale \
-	tst-strfmon1 tst-sscanf tst-strptime bug-setlocale1
+	tst-strfmon1 tst-sscanf tst-strptime bug-setlocale1 tst-setlocale2
 ifeq (yesy,$(build-shared)$(OPTION_EGLIBC_LOCALE_CODE))
 ifneq (no,$(PERL))
 tests: $(objpfx)mtrace-tst-leaks
@@ -152,7 +148,7 @@ LOCALES := de_DE.ISO-8859-1 de_DE.UTF-8 en_US.ANSI_X3.4-1968 \
 	   hr_HR.ISO-8859-2 sv_SE.ISO-8859-1 ja_JP.SJIS fr_FR.ISO-8859-1 \
 	   vi_VN.TCVN5712-1 nb_NO.ISO-8859-1 nn_NO.ISO-8859-1 \
 	   tr_TR.UTF-8 cs_CZ.UTF-8 zh_TW.EUC-TW fa_IR.UTF-8 fr_FR.UTF-8 \
-	   ja_JP.UTF-8 si_LK.UTF-8
+	   ja_JP.UTF-8 si_LK.UTF-8 tr_TR.ISO-8859-9
 LOCALE_SRCS := $(shell echo "$(LOCALES)"|sed 's/\([^ .]*\)[^ ]*/\1/g')
 CHARMAPS := $(shell echo "$(LOCALES)" | \
 		    sed -e 's/[^ .]*[.]\([^ ]*\)/\1/g' -e s/SJIS/SHIFT_JIS/g)
@@ -332,6 +328,7 @@ $(objpfx)mtrace-tst-leaks: $(objpfx)tst-leaks.out
 
 bug-setlocale1-ENV = LOCPATH=$(common-objpfx)localedata
 bug-setlocale1-ARGS = $(common-objpfx)
+tst-setlocale2-ENV = LOCPATH=$(common-objpfx)localedata
 
 $(objdir)/iconvdata/gconv-modules:
 	$(MAKE) -C ../iconvdata subdir=iconvdata $@

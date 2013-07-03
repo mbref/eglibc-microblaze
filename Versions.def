@@ -31,9 +31,8 @@ libc {
   GLIBC_2.12
   GLIBC_2.13
   GLIBC_2.14
-%ifdef USE_IN_LIBIO
+  GLIBC_2.15
   HURD_CTHREADS_0.3
-%endif
 %ifdef EXPORT_UNWIND_FIND_FDE
   GCC_3.0
 %endif
@@ -55,6 +54,7 @@ libm {
   GLIBC_2.2.3
   GLIBC_2.3.4
   GLIBC_2.4
+  GLIBC_2.15
 }
 libnsl {
   GLIBC_2.0
@@ -65,6 +65,9 @@ libnss_compat {
   GLIBC_PRIVATE
 }
 libnss_dns {
+  GLIBC_PRIVATE
+}
+libnss_db {
   GLIBC_PRIVATE
 }
 libnss_files {

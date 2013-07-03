@@ -24,6 +24,7 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <grp.h>
+#include <ifaddrs.h>
 #include <libintl.h>
 #include <pthread.h>
 #include <pwd.h>
@@ -32,6 +33,10 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <arpa/inet.h>
+#ifdef HAVE_NETLINK
+# include <linux/netlink.h>
+# include <linux/rtnetlink.h>
+#endif
 #ifdef HAVE_EPOLL
 # include <sys/epoll.h>
 #endif
@@ -56,11 +61,6 @@
 # include <kernel-features.h>
 #endif
 
-
-/* Wrapper functions with error checking for standard functions.  */
-extern void *xmalloc (size_t n);
-extern void *xcalloc (size_t n, size_t s);
-extern void *xrealloc (void *o, size_t n);
 
 /* Support to run nscd as an unprivileged user */
 const char *server_user;
@@ -100,7 +100,10 @@ const char *const serv2str[LASTREQ] =
   [INITGROUPS] = "INITGROUPS",
   [GETSERVBYNAME] = "GETSERVBYNAME",
   [GETSERVBYPORT] = "GETSERVBYPORT",
-  [GETFDSERV] = "GETFDSERV"
+  [GETFDSERV] = "GETFDSERV",
+  [GETNETGRENT] = "GETNETGRENT",
+  [INNETGR] = "INNETGR",
+  [GETFDNETGR] = "GETFDNETGR"
 };
 
 /* The control data structures for the services.  */
@@ -117,8 +120,6 @@ struct database_dyn dbs[lastdb] =
     .shared = 0,
     .max_db_size = DEFAULT_MAX_DB_SIZE,
     .suggested_module = DEFAULT_SUGGESTED_MODULE,
-   .reset_res = 0,
-    .filename = "/etc/passwd",
     .db_filename = _PATH_NSCD_PASSWD_DB,
     .disabled_iov = &pwd_iov_disabled,
     .postimeout = 3600,
@@ -138,8 +139,6 @@ struct database_dyn dbs[lastdb] =
     .shared = 0,
     .max_db_size = DEFAULT_MAX_DB_SIZE,
     .suggested_module = DEFAULT_SUGGESTED_MODULE,
-    .reset_res = 0,
-    .filename = "/etc/group",
     .db_filename = _PATH_NSCD_GROUP_DB,
     .disabled_iov = &grp_iov_disabled,
     .postimeout = 3600,
@@ -159,8 +158,6 @@ struct database_dyn dbs[lastdb] =
     .shared = 0,
     .max_db_size = DEFAULT_MAX_DB_SIZE,
     .suggested_module = DEFAULT_SUGGESTED_MODULE,
-    .reset_res = 1,
-    .filename = "/etc/hosts",
     .db_filename = _PATH_NSCD_HOSTS_DB,
     .disabled_iov = &hst_iov_disabled,
     .postimeout = 3600,
@@ -180,10 +177,27 @@ struct database_dyn dbs[lastdb] =
     .shared = 0,
     .max_db_size = DEFAULT_MAX_DB_SIZE,
     .suggested_module = DEFAULT_SUGGESTED_MODULE,
-    .reset_res = 0,
-    .filename = "/etc/services",
     .db_filename = _PATH_NSCD_SERVICES_DB,
     .disabled_iov = &serv_iov_disabled,
+    .postimeout = 28800,
+    .negtimeout = 20,
+    .wr_fd = -1,
+    .ro_fd = -1,
+    .mmap_used = false
+  },
+  [netgrdb] = {
+    .lock = PTHREAD_RWLOCK_WRITER_NONRECURSIVE_INITIALIZER_NP,
+    .prune_lock = PTHREAD_MUTEX_INITIALIZER,
+    .prune_run_lock = PTHREAD_MUTEX_INITIALIZER,
+    .enabled = 0,
+    .check_file = 1,
+    .persistent = 0,
+    .propagate = 0,		/* Not used.  */
+    .shared = 0,
+    .max_db_size = DEFAULT_MAX_DB_SIZE,
+    .suggested_module = DEFAULT_SUGGESTED_MODULE,
+    .db_filename = _PATH_NSCD_NETGROUP_DB,
+    .disabled_iov = &netgroup_iov_disabled,
     .postimeout = 28800,
     .negtimeout = 20,
     .wr_fd = -1,
@@ -218,7 +232,10 @@ static struct
   [INITGROUPS] = { true, &dbs[grpdb] },
   [GETSERVBYNAME] = { true, &dbs[servdb] },
   [GETSERVBYPORT] = { true, &dbs[servdb] },
-  [GETFDSERV] = { false, &dbs[servdb] }
+  [GETFDSERV] = { false, &dbs[servdb] },
+  [GETNETGRENT] = { true, &dbs[netgrdb] },
+  [INNETGR] = { true, &dbs[netgrdb] },
+  [GETFDNETGR] = { false, &dbs[netgrdb] }
 };
 
 
@@ -232,10 +249,12 @@ static int sock;
 
 #ifdef HAVE_INOTIFY
 /* Inotify descriptor.  */
-static int inotify_fd = -1;
+int inotify_fd = -1;
+#endif
 
-/* Watch descriptor for resolver configuration file.  */
-static int resolv_conf_descr = -1;
+#ifdef HAVE_NETLINK
+/* Descriptor for netlink status updates.  */
+static int nl_status_fd = -1;
 #endif
 
 #ifndef __ASSUME_SOCK_CLOEXEC
@@ -366,7 +385,8 @@ check_use (const char *data, nscd_ssize_t first_free, uint8_t *usemap,
 static int
 verify_persistent_db (void *mem, struct database_pers_head *readhead, int dbnr)
 {
-  assert (dbnr == pwddb || dbnr == grpdb || dbnr == hstdb || dbnr == servdb);
+  assert (dbnr == pwddb || dbnr == grpdb || dbnr == hstdb || dbnr == servdb
+	  || dbnr == netgrdb);
 
   time_t now = time (NULL);
 
@@ -522,19 +542,6 @@ nscd_init (void)
   if (nthreads == -1)
     /* No configuration for this value, assume a default.  */
     nthreads = 4;
-
-#ifdef HAVE_INOTIFY
-  /* Use inotify to recognize changed files.  */
-  inotify_fd = inotify_init1 (IN_NONBLOCK);
-# ifndef __ASSUME_IN_NONBLOCK
-  if (inotify_fd == -1 && errno == ENOSYS)
-    {
-      inotify_fd = inotify_init ();
-      if (inotify_fd != -1)
-	fcntl (inotify_fd, F_SETFL, O_RDONLY | O_NONBLOCK);
-    }
-# endif
-#endif
 
   for (size_t cnt = 0; cnt < lastdb; ++cnt)
     if (dbs[cnt].enabled)
@@ -840,40 +847,6 @@ cannot set socket to close on exec: %s; disabling paranoia mode"),
 	    dbs[cnt].shared = 0;
 	    assert (dbs[cnt].ro_fd == -1);
 	  }
-
-	dbs[cnt].inotify_descr = -1;
-	if (dbs[cnt].check_file)
-	  {
-#ifdef HAVE_INOTIFY
-	    if (inotify_fd < 0
-		|| (dbs[cnt].inotify_descr
-		    = inotify_add_watch (inotify_fd, dbs[cnt].filename,
-					 IN_DELETE_SELF | IN_MODIFY)) < 0)
-	      /* We cannot notice changes in the main thread.  */
-#endif
-	      {
-		/* We need the modification date of the file.  */
-		struct stat64 st;
-
-		if (stat64 (dbs[cnt].filename, &st) < 0)
-		  {
-		    /* We cannot stat() the file, disable file checking.  */
-		    dbg_log (_("cannot stat() file `%s': %s"),
-			     dbs[cnt].filename, strerror (errno));
-		    dbs[cnt].check_file = 0;
-		  }
-		else
-		  dbs[cnt].file_mtime = st.st_mtime;
-	      }
-	  }
-
-#ifdef HAVE_INOTIFY
-	if (cnt == hstdb && inotify_fd >= -1)
-	  /* We also monitor the resolver configuration file.  */
-	  resolv_conf_descr = inotify_add_watch (inotify_fd,
-						 _PATH_RESCONF,
-						 IN_DELETE_SELF | IN_MODIFY);
-#endif
       }
 
   /* Create the socket.  */
@@ -940,9 +913,106 @@ cannot set socket to close on exec: %s; disabling paranoia mode"),
       exit (1);
     }
 
-  /* Change to unprivileged uid/gid/groups if specifed in config file */
+#ifdef HAVE_NETLINK
+  if (dbs[hstdb].enabled)
+    {
+      /* Try to open netlink socket to monitor network setting changes.  */
+      nl_status_fd = socket (AF_NETLINK,
+			     SOCK_RAW | SOCK_CLOEXEC | SOCK_NONBLOCK,
+			     NETLINK_ROUTE);
+      if (nl_status_fd != -1)
+	{
+	  struct sockaddr_nl snl;
+	  memset (&snl, '\0', sizeof (snl));
+	  snl.nl_family = AF_NETLINK;
+	  /* XXX Is this the best set to use?  */
+	  snl.nl_groups = (RTMGRP_IPV4_IFADDR | RTMGRP_TC | RTMGRP_IPV4_MROUTE
+			   | RTMGRP_IPV4_ROUTE | RTMGRP_IPV4_RULE
+			   | RTMGRP_IPV6_IFADDR | RTMGRP_IPV6_MROUTE
+			   | RTMGRP_IPV6_ROUTE | RTMGRP_IPV6_IFINFO
+			   | RTMGRP_IPV6_PREFIX);
+
+	  if (bind (nl_status_fd, (struct sockaddr *) &snl, sizeof (snl)) != 0)
+	    {
+	      close (nl_status_fd);
+	      nl_status_fd = -1;
+	    }
+	  else
+	    {
+	      /* Start the timestamp process.  */
+	      dbs[hstdb].head->extra_data[NSCD_HST_IDX_CONF_TIMESTAMP]
+		= __bump_nl_timestamp ();
+
+# ifndef __ASSUME_SOCK_CLOEXEC
+	      if (have_sock_cloexec < 0)
+		{
+		  /* We don't want to get stuck on accept.  */
+		  int fl = fcntl (nl_status_fd, F_GETFL);
+		  if (fl == -1
+		      || fcntl (nl_status_fd, F_SETFL, fl | O_NONBLOCK) == -1)
+		    {
+		      dbg_log (_("\
+cannot change socket to nonblocking mode: %s"),
+			       strerror (errno));
+		      exit (1);
+		    }
+
+		  /* The descriptor needs to be closed on exec.  */
+		  if (paranoia
+		      && fcntl (nl_status_fd, F_SETFD, FD_CLOEXEC) == -1)
+		    {
+		      dbg_log (_("cannot set socket to close on exec: %s"),
+			       strerror (errno));
+		      exit (1);
+		    }
+		}
+# endif
+	    }
+	}
+    }
+#endif
+
+  /* Change to unprivileged uid/gid/groups if specified in config file */
   if (server_user != NULL)
     finish_drop_privileges ();
+}
+
+
+void
+register_traced_file (size_t dbidx, struct traced_file *finfo)
+{
+  if (! dbs[dbidx].enabled || ! dbs[dbidx].check_file)
+    return;
+
+  if (__builtin_expect (debug_level > 0, 0))
+    dbg_log (_("register trace file %s for database %s"),
+	     finfo->fname, dbnames[dbidx]);
+
+#ifdef HAVE_INOTIFY
+  if (inotify_fd < 0
+      || (finfo->inotify_descr = inotify_add_watch (inotify_fd, finfo->fname,
+						    IN_DELETE_SELF
+						    | IN_MODIFY)) < 0)
+#endif
+    {
+      /* We need the modification date of the file.  */
+      struct stat64 st;
+
+      if (stat64 (finfo->fname, &st) < 0)
+	{
+	  /* We cannot stat() the file, disable file checking.  */
+	  dbg_log (_("cannot stat() file `%s': %s"),
+		   finfo->fname, strerror (errno));
+	  return;
+	}
+
+      finfo->inotify_descr = -1;
+      finfo->mtime = st.st_mtime;
+    }
+
+  /* Queue up the file name.  */
+  finfo->next = dbs[dbidx].traced_files;
+  dbs[dbidx].traced_files = finfo;
 }
 
 
@@ -963,11 +1033,20 @@ invalidate_cache (char *key, int fd)
   for (number = pwddb; number < lastdb; ++number)
     if (strcmp (key, dbnames[number]) == 0)
       {
-	if (dbs[number].reset_res)
-	  res_init ();
-
+	if (number == hstdb)
+	  {
+	    struct traced_file *runp = dbs[hstdb].traced_files;
+	    while (runp != NULL)
+	      if (runp->call_res_init)
+		{
+		  res_init ();
+		  break;
+		}
+	      else
+		runp = runp->next;
+	  }
 	break;
-      }
+    }
 
   if (number == lastdb)
     {
@@ -1241,6 +1320,14 @@ request from '%s' [%ld] not handled due to missing permission"),
       addservbyport (db, fd, req, key, uid);
       break;
 
+    case GETNETGRENT:
+      addgetnetgrent (db, fd, req, key, uid);
+      break;
+
+    case INNETGR:
+      addinnetgr (db, fd, req, key, uid);
+      break;
+
     case GETSTAT:
     case SHUTDOWN:
     case INVALIDATE:
@@ -1287,6 +1374,7 @@ request from '%s' [%ld] not handled due to missing permission"),
     case GETFDGR:
     case GETFDHST:
     case GETFDSERV:
+    case GETFDNETGR:
 #ifdef SCM_RIGHTS
       send_ro_fd (reqinfo[req->type].db, key, fd);
 #endif
@@ -1807,6 +1895,18 @@ main_loop_poll (void)
     }
 #endif
 
+#ifdef HAVE_NETLINK
+  size_t idx_nl_status_fd = 0;
+  if (nl_status_fd != -1)
+    {
+      idx_nl_status_fd = nused;
+      conns[nused].fd = nl_status_fd;
+      conns[nused].events = POLLRDNORM;
+      ++nused;
+      firstfree = nused;
+    }
+#endif
+
   while (1)
     {
       /* Wait for any event.  We wait at most a couple of seconds so
@@ -1913,16 +2013,21 @@ disabled inotify after read error %d"),
 
 		      /* Check which of the files changed.  */
 		      for (size_t dbcnt = 0; dbcnt < lastdb; ++dbcnt)
-			if (inev.i.wd == dbs[dbcnt].inotify_descr)
-			  {
-			    to_clear[dbcnt] = true;
-			    goto next;
-			  }
-
-		      if (inev.i.wd == resolv_conf_descr)
 			{
-			  res_init ();
-			  to_clear[hstdb] = true;
+			  struct traced_file *finfo = dbs[dbcnt].traced_files;
+
+			  while (finfo != NULL)
+			    {
+			      if (finfo->inotify_descr == inev.i.wd)
+				{
+				  to_clear[dbcnt] = true;
+				  if (finfo->call_res_init)
+				    res_init ();
+				  goto next;
+				}
+
+			      finfo = finfo->next;
+			    }
 			}
 		    next:;
 		    }
@@ -1941,6 +2046,20 @@ disabled inotify after read error %d"),
 		}
 
 	      first = 2;
+	    }
+#endif
+
+#ifdef HAVE_NETLINK
+	  if (idx_nl_status_fd != 0 && conns[idx_nl_status_fd].revents != 0)
+	    {
+	      char buf[4096];
+	      /* Read all the data.  We do not interpret it here.  */
+	      while (TEMP_FAILURE_RETRY (read (nl_status_fd, buf,
+					       sizeof (buf))) != -1)
+		;
+
+	      dbs[hstdb].head->extra_data[NSCD_HST_IDX_CONF_TIMESTAMP]
+		= __bump_nl_timestamp ();
 	    }
 #endif
 
@@ -2022,6 +2141,17 @@ main_loop_epoll (int efd)
     }
 # endif
 
+# ifdef HAVE_NETLINK
+  if (nl_status_fd != -1)
+    {
+      ev.events = EPOLLRDNORM;
+      ev.data.fd = nl_status_fd;
+      if (epoll_ctl (efd, EPOLL_CTL_ADD, nl_status_fd, &ev) == -1)
+	/* We cannot use epoll.  */
+	return;
+    }
+# endif
+
   while (1)
     {
       struct epoll_event revs[100];
@@ -2089,7 +2219,7 @@ main_loop_epoll (int efd)
 	    while (1)
 	      {
 		ssize_t nb = TEMP_FAILURE_RETRY (read (inotify_fd, &inev,
-				 		 sizeof (inev)));
+						 sizeof (inev)));
 		if (nb < (ssize_t) sizeof (struct inotify_event))
 		  {
 		    if (__builtin_expect (nb == -1 && errno != EAGAIN, 0))
@@ -2108,16 +2238,21 @@ main_loop_epoll (int efd)
 
 		/* Check which of the files changed.  */
 		for (size_t dbcnt = 0; dbcnt < lastdb; ++dbcnt)
-		  if (inev.i.wd == dbs[dbcnt].inotify_descr)
-		    {
-		      to_clear[dbcnt] = true;
-		      goto next;
-		    }
-
-		if (inev.i.wd == resolv_conf_descr)
 		  {
-		    res_init ();
-		    to_clear[hstdb] = true;
+		    struct traced_file *finfo = dbs[dbcnt].traced_files;
+
+		    while (finfo != NULL)
+		      {
+			if (finfo->inotify_descr == inev.i.wd)
+			  {
+			    to_clear[dbcnt] = true;
+			    if (finfo->call_res_init)
+			      res_init ();
+			    goto next;
+			  }
+
+			finfo = finfo->next;
+		      }
 		  }
 	      next:;
 	      }
@@ -2131,6 +2266,18 @@ main_loop_epoll (int efd)
 		  pthread_mutex_unlock (&dbs[dbcnt].prune_lock);
 		  pthread_cond_signal (&dbs[dbcnt].prune_cond);
 		}
+	  }
+# endif
+# ifdef HAVE_NETLINK
+	else if (revs[cnt].data.fd == nl_status_fd)
+	  {
+	    char buf[4096];
+	    /* Read all the data.  We do not interpret it here.  */
+	    while (TEMP_FAILURE_RETRY (read (nl_status_fd, buf,
+					     sizeof (buf))) != -1)
+	      ;
+
+	    __bump_nl_timestamp ();
 	  }
 # endif
 	else
@@ -2156,6 +2303,7 @@ main_loop_epoll (int efd)
       time_t laststart = now - ACCEPT_TIMEOUT;
       assert (starttime[sock] == 0);
       assert (inotify_fd == -1 || starttime[inotify_fd] == 0);
+      assert (nl_status_fd == -1 || starttime[nl_status_fd] == 0);
       for (int cnt = highest; cnt > STDERR_FILENO; --cnt)
 	if (starttime[cnt] != 0 && starttime[cnt] < laststart)
 	  {

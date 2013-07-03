@@ -86,7 +86,7 @@ __init_cpu_features (void)
 
 	    default:
 	      /* Unknown family 0x06 processors.  Assuming this is one
-	         of Core i3/i5/i7 processors if AVX is available.  */
+		 of Core i3/i5/i7 processors if AVX is available.  */
 	      if ((ecx & bit_AVX) == 0)
 		break;
 
@@ -97,13 +97,22 @@ __init_cpu_features (void)
 	    case 0x2c:
 	    case 0x2e:
 	    case 0x2f:
-	      /* Rep string instructions and copy backward are fast on
-		 Intel Core i3, i5 and i7.  */
+	      /* Rep string instructions, copy backward, unaligned loads
+		 and pminub are fast on Intel Core i3, i5 and i7.  */
 #if index_Fast_Rep_String != index_Fast_Copy_Backward
 # error index_Fast_Rep_String != index_Fast_Copy_Backward
 #endif
+#if index_Fast_Rep_String != index_Fast_Unaligned_Load
+# error index_Fast_Rep_String != index_Fast_Unaligned_Load
+#endif
+#if index_Fast_Rep_String != index_Prefer_PMINUB_for_stringop
+# error index_Fast_Rep_String != index_Prefer_PMINUB_for_stringop
+#endif
 	      __cpu_features.feature[index_Fast_Rep_String]
-		|= bit_Fast_Rep_String | bit_Fast_Copy_Backward;
+		|= (bit_Fast_Rep_String
+		    | bit_Fast_Copy_Backward
+		    | bit_Fast_Unaligned_Load
+		    | bit_Prefer_PMINUB_for_stringop);
 	      break;
 	    }
 	}
@@ -115,13 +124,22 @@ __init_cpu_features (void)
 
       get_common_indeces (&family, &model);
 
-      unsigned int ecx = __cpu_features.cpuid[COMMON_CPUID_INDEX_1].ecx;
+      ecx = __cpu_features.cpuid[COMMON_CPUID_INDEX_1].ecx;
 
       /* AMD processors prefer SSE instructions for memory/string routines
 	 if they are available, otherwise they prefer integer instructions.  */
       if ((ecx & 0x200))
 	__cpu_features.feature[index_Prefer_SSE_for_memop]
 	  |= bit_Prefer_SSE_for_memop;
+
+      unsigned int eax;
+      __cpuid (0x80000000, eax, ebx, ecx, edx);
+      if (eax >= 0x80000001)
+	__cpuid (0x80000001,
+		 __cpu_features.cpuid[COMMON_CPUID_INDEX_80000001].eax,
+		 __cpu_features.cpuid[COMMON_CPUID_INDEX_80000001].ebx,
+		 __cpu_features.cpuid[COMMON_CPUID_INDEX_80000001].ecx,
+		 __cpu_features.cpuid[COMMON_CPUID_INDEX_80000001].edx);
     }
   else
     kind = arch_kind_other;

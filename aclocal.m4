@@ -103,6 +103,8 @@ NM=`$CC -print-prog-name=nm`
 AC_SUBST(NM)
 OBJDUMP=`$CC -print-prog-name=objdump`
 AC_SUBST(OBJDUMP)
+OBJCOPY=`$CC -print-prog-name=objcopy`
+AC_SUBST(OBJCOPY)
 
 # Determine whether we are using GNU binutils.
 AC_CACHE_CHECK(whether $AS is GNU as, libc_cv_prog_as_gnu,
@@ -129,7 +131,9 @@ AC_DEFUN([ACX_PKGVERSION],[
      esac],
     PKGVERSION="($1) "
   )
+  PKGVERSION_TEXI=`echo "$PKGVERSION" | sed 's/@/@@/g'`
   AC_SUBST(PKGVERSION)
+  AC_SUBST(PKGVERSION_TEXI)
 ])
 
 dnl Support the --with-bugurl configure option.

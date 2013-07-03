@@ -1,4 +1,4 @@
-/* Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2008
+/* Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2008, 2011
    Free Software Foundation, Inc.
    Contributed by Martin Schwidefsky (schwidefsky@de.ibm.com).
    This file is part of the GNU C Library.
@@ -50,16 +50,16 @@
    even if the call succeeded.  E.g., the `lseek' system call might return
    a large offset.  Therefore we must not anymore test for < 0, but test
    for a real error by making sure the value in gpr2 is a real error
-   number.  Linus said he will make sure the no syscall returns a value
+   number.  Linus said he will make sure that no syscall returns a value
    in -1 .. -4095 as a valid result so we can savely test with -4095.  */
 
 #undef PSEUDO
 #define	PSEUDO(name, syscall_name, args)				      \
   .text;                                                                      \
-  ENTRY (name)							              \
+  ENTRY (name)								      \
     DO_CALL (syscall_name, args);                                             \
     lhi  %r4,-4095 ;                                                          \
-    clr  %r2,%r4 ;		                                              \
+    clr  %r2,%r4 ;							      \
     jnl  SYSCALL_ERROR_LABEL
 
 #undef PSEUDO_END
@@ -70,7 +70,7 @@
 #undef PSEUDO_NOERRNO
 #define	PSEUDO_NOERRNO(name, syscall_name, args)			      \
   .text;                                                                      \
-  ENTRY (name)							              \
+  ENTRY (name)								      \
     DO_CALL (syscall_name, args)
 
 #undef PSEUDO_END_NOERRNO
@@ -80,7 +80,7 @@
 #undef PSEUDO_ERRVAL
 #define	PSEUDO_ERRVAL(name, syscall_name, args)				      \
   .text;                                                                      \
-  ENTRY (name)							              \
+  ENTRY (name)								      \
     DO_CALL (syscall_name, args);					      \
     lcr %r2,%r2
 
@@ -107,14 +107,13 @@
     br    %r14;								      \
 2:  .long rtld_errno-1b
 # elif defined _LIBC_REENTRANT
-#  if USE___THREAD
-#   ifndef NOT_IN_libc
-#    define SYSCALL_ERROR_ERRNO __libc_errno
-#   else
-#    define SYSCALL_ERROR_ERRNO errno
-#   endif
-#   define SYSCALL_ERROR_LABEL 0f
-#   define SYSCALL_ERROR_HANDLER \
+#  ifndef NOT_IN_libc
+#   define SYSCALL_ERROR_ERRNO __libc_errno
+#  else
+#   define SYSCALL_ERROR_ERRNO errno
+#  endif
+#  define SYSCALL_ERROR_LABEL 0f
+#  define SYSCALL_ERROR_HANDLER \
 0:  lcr   %r0,%r2;							      \
     basr  %r1,0;							      \
 1:  al    %r1,2f-1b(%r1);						      \
@@ -124,14 +123,6 @@
     lhi   %r2,-1;							      \
     br    %r14;								      \
 2:  .long _GLOBAL_OFFSET_TABLE_-1b
-#  else
-#   define SYSCALL_ERROR_LABEL 0f
-#   define SYSCALL_ERROR_HANDLER \
-0:  basr  %r1,0;							      \
-1:  al    %r1,2f-1b(%r1);						      \
-    br    %r1;								      \
-2:  .long syscall_error@plt-1b
-#  endif
 # else
 #  define SYSCALL_ERROR_LABEL 0f
 #  define SYSCALL_ERROR_HANDLER \
@@ -317,8 +308,8 @@
     if (INTERNAL_SYSCALL_ERROR_P (_ret, ))				      \
       {									      \
       iserr:								      \
-        __set_errno (INTERNAL_SYSCALL_ERRNO (_ret, ));			      \
-        _ret = -1L;							      \
+	__set_errno (INTERNAL_SYSCALL_ERRNO (_ret, ));			      \
+	_ret = -1L;							      \
       }									      \
   out:									      \
     (int) _ret;								      \
@@ -368,12 +359,12 @@
     DECLARGS_##nr(args)							      \
     register long _ret asm("2");						      \
     asm volatile (							      \
-    "lr 11,14\n\t"							      \
+    "lr 10,14\n\t"                                                           \
     "basr 14,%1\n\t"							      \
-    "lr 14,11\n\t"							      \
+    "lr 14,10\n\t"                                                           \
     : "=d" (_ret)							      \
     : "d" (fn) ASMFMT_##nr						      \
-    : "cc", "memory", "0", "1", "11" CLOBBER_##nr);			      \
+    : "cc", "memory", "0", "1", "10" CLOBBER_##nr);                          \
     _ret; })
 
 /* Pointer mangling support.  */

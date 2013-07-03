@@ -1,4 +1,5 @@
-/* Copyright (C) 1993, 1995-2006, 2007, 2009 Free Software Foundation, Inc.
+/* Copyright (C) 1993,1995-2006,2007,2009,2011
+	Free Software Foundation, Inc.
    This file is part of the GNU C Library.
    Contributed by David Mosberger (davidm@azstarnet.com).
 
@@ -45,9 +46,7 @@
 #include <bits/libc-lock.h>
 #include "ifreq.h"
 #include "res_hconf.h"
-#ifdef USE_IN_LIBIO
-# include <wchar.h>
-#endif
+#include <wchar.h>
 
 #define _PATH_HOSTCONF	"/etc/host.conf"
 
@@ -308,7 +307,7 @@ do_init (void)
   if (hconf_name == NULL)
     hconf_name = _PATH_HOSTCONF;
 
-  fp = fopen (hconf_name, "rc");
+  fp = fopen (hconf_name, "rce");
   if (fp)
     {
       /* No threads using this stream.  */
@@ -461,7 +460,7 @@ _res_hconf_reorder_addrs (struct hostent *hp)
 
 	cleanup:
 	  /* Release lock, preserve error value, and close socket.  */
-	  save = errno;
+	  errno = save;
 
 	  num_ifs = new_num_ifs;
 

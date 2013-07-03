@@ -38,6 +38,7 @@ typedef enum
   grpdb,
   hstdb,
   servdb,
+  netgrdb,
   lastdb
 } dbtype;
 
@@ -62,6 +63,17 @@ typedef enum
 #define MAX_STACK_USE ((8 * NSCD_THREAD_STACKSIZE) / 10)
 
 
+/* Registered filename used to fill database.  */
+struct traced_file
+{
+  time_t mtime;
+  struct traced_file *next;
+  int call_res_init;
+  int inotify_descr;
+  char fname[];
+};
+
+
 /* Structure describing dynamic part of one database.  */
 struct database_dyn
 {
@@ -73,13 +85,11 @@ struct database_dyn
 
   int enabled;
   int check_file;
-  int inotify_descr;
   int clear_cache;
   int persistent;
   int shared;
   int propagate;
-  int reset_res;
-  const char filename[16];
+  struct traced_file *traced_files;
   const char *db_filename;
   time_t file_mtime;
   size_t suggested_module;
@@ -107,6 +117,7 @@ struct database_dyn
 #define _PATH_NSCD_GROUP_DB	"/var/db/nscd/group"
 #define _PATH_NSCD_HOSTS_DB	"/var/db/nscd/hosts"
 #define _PATH_NSCD_SERVICES_DB	"/var/db/nscd/services"
+#define _PATH_NSCD_NETGROUP_DB	"/var/db/nscd/netgroup"
 
 /* Path used when not using persistent storage.  */
 #define _PATH_NSCD_XYZ_DB_TMP	"/var/run/nscd/dbXXXXXX"
@@ -140,12 +151,16 @@ extern const struct iovec pwd_iov_disabled;
 extern const struct iovec grp_iov_disabled;
 extern const struct iovec hst_iov_disabled;
 extern const struct iovec serv_iov_disabled;
+extern const struct iovec netgroup_iov_disabled;
 
 
 /* Initial number of threads to run.  */
 extern int nthreads;
 /* Maximum number of threads to use.  */
 extern int max_nthreads;
+
+/* Inotify descriptor.  */
+extern int inotify_fd;
 
 /* User name to run server processes as.  */
 extern const char *server_user;
@@ -185,12 +200,18 @@ extern gid_t old_gid;
 
 /* Prototypes for global functions.  */
 
+/* Wrapper functions with error checking for standard functions.  */
+extern void *xmalloc (size_t n);
+extern void *xcalloc (size_t n, size_t s);
+extern void *xrealloc (void *o, size_t n);
+
 /* nscd.c */
 extern void termination_handler (int signum) __attribute__ ((__noreturn__));
 extern int nscd_open_socket (void);
 
 /* connections.c */
 extern void nscd_init (void);
+extern void register_traced_file (size_t dbidx, struct traced_file *finfo);
 extern void close_sockets (void);
 extern void start_threads (void) __attribute__ ((__noreturn__));
 
@@ -203,8 +224,8 @@ extern void send_stats (int fd, struct database_dyn dbs[lastdb]);
 extern int receive_print_stats (void) __attribute__ ((__noreturn__));
 
 /* cache.c */
-extern struct datahead *cache_search (request_type, void *key, size_t len,
-				      struct database_dyn *table,
+extern struct datahead *cache_search (request_type, const void *key,
+				      size_t len, struct database_dyn *table,
 				      uid_t owner);
 extern int cache_add (int type, const void *key, size_t len,
 		      struct datahead *packet, bool first,
@@ -272,6 +293,16 @@ extern void addservbyport (struct database_dyn *db, int fd,
 			   request_header *req, void *key, uid_t uid);
 extern time_t readdservbyport (struct database_dyn *db, struct hashentry *he,
 			       struct datahead *dh);
+
+/* netgroupcache.c */
+extern void addinnetgr (struct database_dyn *db, int fd, request_header *req,
+			void *key, uid_t uid);
+extern time_t readdinnetgr (struct database_dyn *db, struct hashentry *he,
+			    struct datahead *dh);
+extern void addgetnetgrent (struct database_dyn *db, int fd,
+			    request_header *req, void *key, uid_t uid);
+extern time_t readdgetnetgrent (struct database_dyn *db, struct hashentry *he,
+				struct datahead *dh);
 
 /* mem.c */
 extern void *mempool_alloc (struct database_dyn *db, size_t len,

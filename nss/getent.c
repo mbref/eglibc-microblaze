@@ -478,7 +478,6 @@ static int
 netgroup_keys (int number, char *key[])
 {
   int result = 0;
-  int i;
 
   if (number == 0)
     {
@@ -486,18 +485,28 @@ netgroup_keys (int number, char *key[])
       return 3;
     }
 
-  for (i = 0; i < number; ++i)
+  if (number == 4)
     {
-      if (!setnetgrent (key[i]))
+      char *host = strcmp (key[1], "*") == 0 ? NULL : key[1];
+      char *user = strcmp (key[2], "*") == 0 ? NULL : key[2];
+      char *domain = strcmp (key[3], "*") == 0 ? NULL : key[3];
+
+      printf ("%-21s (%s,%s,%s) = %d\n",
+	      key[0], host ?: "", user ?: "", domain ?: "",
+	      innetgr (key[0], host, user, domain));
+    }
+  else if (number == 1)
+    {
+      if (!setnetgrent (key[0]))
 	result = 2;
       else
 	{
 	  char *p[3];
 
-	  printf ("%-21s", key[i]);
+	  printf ("%-21s", key[0]);
 
 	  while (getnetgrent (p, p + 1, p + 2))
-	    printf (" (%s, %s, %s)", p[0] ?: " ", p[1] ?: "", p[2] ?: "");
+	    printf (" (%s,%s,%s)", p[0] ?: " ", p[1] ?: "", p[2] ?: "");
 	  putchar_unlocked ('\n');
 	}
     }
@@ -505,6 +514,44 @@ netgroup_keys (int number, char *key[])
   endnetgrent ();
 
   return result;
+}
+
+/* This is for initgroups */
+static int
+initgroups_keys (int number, char *key[])
+{
+  int ngrps = 100;
+  size_t grpslen = ngrps * sizeof (gid_t);
+  gid_t *grps = alloca (grpslen);
+
+  if (number == 0)
+    {
+      fprintf (stderr, _("Enumeration not supported on %s\n"), "initgroups");
+      return 3;
+    }
+
+  for (int i = 0; i < number; ++i)
+    {
+      int no = ngrps;
+      int n;
+      while ((n = getgrouplist (key[i], -1, grps, &no)) == -1
+	     && no > ngrps)
+	{
+	  grps = extend_alloca (grps, grpslen, no * sizeof (gid_t));
+	  ngrps = no;
+	}
+
+      if (n == -1)
+	return 1;
+
+      printf ("%-21s", key[i]);
+      for (int j = 0; j < n; ++j)
+	if (grps[j] != -1)
+	  printf (" %ld", (long int) grps[j]);
+      putchar_unlocked ('\n');
+    }
+
+  return 0;
 }
 
 /* This is for networks */
@@ -851,6 +898,7 @@ DN(ethers)
 D(group)
 D(gshadow)
 DN(hosts)
+D(initgroups)
 DN(netgroup)
 DN(networks)
 D(passwd)
